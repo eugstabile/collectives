@@ -368,20 +368,7 @@ int main(int argc, char *argv[])
     // Print off a hello world message
     printf("Hello world from processor %s, rank %d out of %d processors\n",
             processor_name, rank, wsize);
- /*   char options[5][20];
-    char abr[5][20];
-    strcpy(options[0],"auto");
-    strcpy(abr[0],"auto");
-    strcpy(options[1], "recursive_doubling");
-    strcpy(abr[1], "rd");
-    strcpy(options[2], "reduce_scatter_allgather");
-    strcpy(abr[2], "rsa");
-    strcpy(options[3],"nb");
-    strcpy(abr[3],"nb");
-*/
-    //char  *env;
-  //  strcpy(env,getenv("MPIR_CVAR_INTRA_ALGORITHM"));
-  //  printf("%s", env);
+    
     int total_wsize = wsize; // Do not modify it
     /* Warm-up zone */
     MPI_Bcast(&reps,1,MPI_INT,0,MPI_COMM_WORLD);
@@ -389,25 +376,18 @@ int main(int argc, char *argv[])
     
     int opt= (argc > 1) ?atoi(argv[1]):0;
     int part = (argc > 2) ? atoi(argv[2]):4;
-        if(rank == 0){
-    printf("SIZE(bytes)\t");
-
-    /*for (int o = 0; o < 4; o++){
-         if(strcmp(env,options[o])==0){
-	     opt = o;
-         }
-    }*/
+    
+    if(rank == 0){
+        printf("SIZE(bytes)\t");
+    }
+    
     printf("allreduce_%d(%d)\t",opt,wsize);
+    
     if(opt == 2)
         printf("4_half_iallreduce(%d)\t",wsize);
- //   printf("allreduce_rsa(%d)\t",wsize);
-//    printf("allreduce_risa(%d)\t",wsize);
-
-
-    //for(int c = 2048*4; c <= 32768; c*=2) 
-    //printf("chunk_%d_iallreduce(%d)\t",c, wsize);
-    printf("\n");
+        printf("\n");
     }
+    
     for (s=1; s<=count; s*=2){
  
         if(rank == 0)
@@ -419,18 +399,13 @@ int main(int argc, char *argv[])
         if(rank == 0){
           printf("%f\t",time_allreduce);
         }
-        /*double time_hallreduce = half_allreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,2);
-        double time_4hallreduce = half_allreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,4);
-        double time_hiallreduce = half_iallreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,1);
-        double time_2hiallreduce = half_iallreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,2);
-        double time_4hiallreduce = half_iallreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,4);*/
         if( opt == 2){ 
 	    double time_4hiallreduce = half_iallreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,4);
             if(rank == 0){
                 printf("%f\t",time_4hiallreduce);
             } 
         }
-/*
+        /* OTHER ALLREDUCE POSSIBILITIES !!!!
         double time_rsa = allreduce_rsa(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,4);
         if(rank == 0){
             printf("%f\t",time_rsa);
