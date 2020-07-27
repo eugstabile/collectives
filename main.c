@@ -383,10 +383,10 @@ int main(int argc, char *argv[])
     
     printf("allreduce_%d(%d)\t",opt,wsize);
     
-    if(opt == 2)
+    if(opt == 2){
         printf("4_half_iallreduce(%d)\t",wsize);
-        printf("\n");
     }
+    printf("\n");
     
     for (s=1; s<=count; s*=2){
  
