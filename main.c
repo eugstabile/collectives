@@ -79,8 +79,8 @@ double half_allreduce(int * in, int * out, int * sol, size_t s, int wsize,int ra
     END_TEST;
 
 }
-double half_iallreduce(int * in, int * out, int * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm, int halfs){
-    if(s < halfs){return -0.001;}
+double half_iallreduce_old(int * in, int * out, int * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm, int halfs){
+    if(s < halfs){halfs=1;}
     size_t half_size = s/halfs;
     MPI_Request * request = malloc(halfs*sizeof(MPI_Request));
     MPI_Status * status = malloc(halfs*sizeof(MPI_Status));
@@ -93,7 +93,25 @@ double half_iallreduce(int * in, int * out, int * sol, size_t s, int wsize,int r
     MPI_Waitall(halfs,request,status);
     END_TEST;
 }
-
+//DYNAMIC for testing
+double half_iallreduce(int * in, int * out, int * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm, int halfs){
+    if(s < halfs){halfs=1;}
+    size_t half_size = s/halfs;
+    MPI_Request * request = malloc(halfs*sizeof(MPI_Request));
+    MPI_Status * status = malloc(halfs*sizeof(MPI_Status));
+    int h;
+    START_TEST;
+    size_t sent = 0;
+    for(h=0;h<halfs-1;h++)
+    {
+        MPI_Iallreduce( &in[h*half_size], &out[h*half_size], half_size, MPI_INT, MPI_SUM, comm, &request[h] );
+        sent+=half_size;
+    }
+    h=halfs-1;
+    MPI_Iallreduce( &in[h*half_size], &out[h*half_size], s-sent, MPI_INT, MPI_SUM, comm, &request[h] );
+    MPI_Waitall(halfs,request,status);
+    END_TEST;
+}
 double chunk_iallreduce(int * in, int * out, int * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm, int chunk){
     int chunks = ceil((sizeof(int)*s)/(chunk*1.0f));
     int last_chunk = (sizeof(int)*s)% chunk;
@@ -341,23 +359,26 @@ double allreduce_dynamic_opt(int * in, int * out, int * sol, int s, int wsize,in
 }
 int main(int argc, char *argv[])
 {
-     //size_t count = 134217728; //500MB
-     size_t count = 131072000*2; //500MB
-    //size_t count = 4096; //16 KB
+     size_t count = 134217728; // 1 GB
+     //size_t count = 67108864; //500MB
  
- //  int count = 100; //500MB
     int *in, *out, *sol;
     int i, r; 
     size_t s;
     int rank, wsize;
     int reps = 100;
     int reps2;
+    
+
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &wsize);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    
     in = (int *)malloc( count * sizeof(int) );
     out = (int *)malloc( count * sizeof(int) );
     sol = (int *)malloc( count * sizeof(int) );
+    
+    //Used for distinc fan-in and fan-out
     int procs_red = wsize; 
     int procs_bcast = 2;
 
@@ -373,20 +394,27 @@ int main(int argc, char *argv[])
     /* Warm-up zone */
     MPI_Bcast(&reps,1,MPI_INT,0,MPI_COMM_WORLD);
     MPI_Allreduce(&reps,&reps2,1,MPI_INT,MPI_MAX,MPI_COMM_WORLD);
-    
+    //Reps2 is never used but we want to make the allreduce movement
+    //Enable the decomposition alreduce     
     int opt= (argc > 1) ?atoi(argv[1]):0;
     int part = (argc > 2) ? atoi(argv[2]):4;
+    // 1 will perform, the original allreduce
+    int ori = (argc > 3) ? atoi(argv[3]):1;
+    if(rank == 0){
+        printf("Test with %d proceses, iallreduce division: %sabled with %d parts\n", wsize, (opt == 0)? "dis" : "en", part);
+    }
     
     if(rank == 0){
         printf("SIZE(bytes)\t");
-    }
+        if(ori == 1){
+            printf("allreduce(%d)\t",wsize);
+        }
     
-    printf("allreduce_%d(%d)\t",opt,wsize);
-    
-    if(opt == 2){
-        printf("4_half_iallreduce(%d)\t",wsize);
-    }
+        if(opt == 1){
+            printf("%d_half_iallreduce(%d)\t",part,wsize);
+        }
     printf("\n");
+    }
     
     for (s=1; s<=count; s*=2){
  
@@ -394,13 +422,14 @@ int main(int argc, char *argv[])
             printf("%lu\t\t",s*sizeof(int));
  
         wsize = total_wsize;
-        
-        double time_allreduce = original_allreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD);
-        if(rank == 0){
-          printf("%f\t",time_allreduce);
+        if(ori == 1){   
+            double time_allreduce = original_allreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD);
+            if(rank == 0){
+              printf("%f\t",time_allreduce);
+            }
         }
-        if( opt == 2){ 
-	    double time_4hiallreduce = half_iallreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,4);
+        if( opt == 1){ 
+	    double time_4hiallreduce = half_iallreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,part);
             if(rank == 0){
                 printf("%f\t",time_4hiallreduce);
             } 
