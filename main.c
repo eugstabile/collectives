@@ -359,12 +359,12 @@ double allreduce_dynamic_opt(int * in, int * out, int * sol, int s, int wsize,in
 }
 int main(int argc, char *argv[])
 {
-     size_t count = 134217728; // 1 GB
+     size_t count = 134217728*2; // 1 GB
      //size_t count = 67108864; //500MB
  
     int *in, *out, *sol;
     int i, r; 
-    size_t s;
+    size_t s, ss=1;
     int rank, wsize;
     int reps = 100;
     int reps2;
@@ -374,9 +374,6 @@ int main(int argc, char *argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &wsize);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     
-    in = (int *)malloc( count * sizeof(int) );
-    out = (int *)malloc( count * sizeof(int) );
-    sol = (int *)malloc( count * sizeof(int) );
     
     //Used for distinc fan-in and fan-out
     int procs_red = wsize; 
@@ -387,7 +384,7 @@ int main(int argc, char *argv[])
     MPI_Get_processor_name(processor_name, &name_len);
 
     // Print off a hello world message
-    printf("Hello world from processor %s, rank %d out of %d processors\n",
+    printf("#Hello world from processor %s, rank %d out of %d processors\n",
             processor_name, rank, wsize);
     
     int total_wsize = wsize; // Do not modify it
@@ -400,12 +397,20 @@ int main(int argc, char *argv[])
     int part = (argc > 2) ? atoi(argv[2]):4;
     // 1 will perform, the original allreduce
     int ori = (argc > 3) ? atoi(argv[3]):1;
+    size_t range = (argc > 4) ? atol(argv[4]): 0;
+    if(range){
+        ss = range;
+        count = range;
+    }
+    in = (int *)malloc( count * sizeof(int) );
+    out = (int *)malloc( count * sizeof(int) );
+    sol = (int *)malloc( count * sizeof(int) );
     if(rank == 0){
-        printf("Test with %d proceses, iallreduce division: %sabled with %d parts\n", wsize, (opt == 0)? "dis" : "en", part);
+        printf("#Test with %d proceses, iallreduce division: %sabled with %d parts\n", wsize, (opt == 0)? "dis" : "en", part);
     }
     
     if(rank == 0){
-        printf("SIZE(bytes)\t");
+        printf("#SIZE(bytes)\t");
         if(ori == 1){
             printf("allreduce(%d)\t",wsize);
         }
@@ -416,7 +421,7 @@ int main(int argc, char *argv[])
     printf("\n");
     }
     
-    for (s=1; s<=count; s*=2){
+    for (s=ss; s<=count; s*=2){
  
         if(rank == 0)
             printf("%lu\t\t",s*sizeof(int));
