@@ -5,7 +5,7 @@
 
 COMP := mpicc
 FLAGS:= -lm
-EXE:= main_mpich
+EXE:= main_ompi
 
 all: test coll
 

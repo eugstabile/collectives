@@ -64,7 +64,8 @@ void check(int *out, int * sol, int size, int rank){
 
 double original_allreduce(int * in, int * out, int * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm){
     START_TEST;
-    MPI_Allreduce( in, out, s, MPI_INT, MPI_SUM, comm );
+    MPI_Allreduce(in, out, s, MPI_INT, MPI_SUM, comm );
+    //MPI_Allreduce(MPI_IN_PLACE,in, s, MPI_INT, MPI_SUM, comm );
     END_TEST;
 }
 
@@ -105,10 +106,12 @@ double half_iallreduce(int * in, int * out, int * sol, size_t s, int wsize,int r
     for(h=0;h<halfs-1;h++)
     {
         MPI_Iallreduce( &in[h*half_size], &out[h*half_size], half_size, MPI_INT, MPI_SUM, comm, &request[h] );
+        //MPI_Iallreduce( MPI_IN_PLACE,&in[h*half_size], half_size, MPI_INT, MPI_SUM, comm, &request[h] );
         sent+=half_size;
     }
     h=halfs-1;
     MPI_Iallreduce( &in[h*half_size], &out[h*half_size], s-sent, MPI_INT, MPI_SUM, comm, &request[h] );
+    //MPI_Iallreduce( MPI_IN_PLACE,&in[h*half_size], s-sent, MPI_INT, MPI_SUM, comm, &request[h] );
     MPI_Waitall(halfs,request,status);
     END_TEST;
 }

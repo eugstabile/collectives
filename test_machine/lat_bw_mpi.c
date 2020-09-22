@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
   int data = 1024*1024*1024;
   char * buff = malloc(data);
   char * buff2 = malloc(data);
-  int reps = 100;
+  int reps = 1000;
   if(world_size != 2) { printf("We need 2 process!\n"); return 0;}
   // Get the rank of the process
   int world_rank;
