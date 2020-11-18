@@ -105,32 +105,35 @@ double half_iallreduce(int * in, int * out, int * sol, size_t s, int wsize,int r
     size_t sent = 0;
     for(h=0;h<halfs-1;h++)
     {
+        //printf("proc %d Iallreduce %d de %lu\n", rank, h, half_size);
         MPI_Iallreduce( &in[h*half_size], &out[h*half_size], half_size, MPI_INT, MPI_SUM, comm, &request[h] );
         //MPI_Iallreduce( MPI_IN_PLACE,&in[h*half_size], half_size, MPI_INT, MPI_SUM, comm, &request[h] );
         sent+=half_size;
     }
     h=halfs-1;
+    //printf("proc %d Iallreduce %d de %lu\n", rank, h, half_size);
     MPI_Iallreduce( &in[h*half_size], &out[h*half_size], s-sent, MPI_INT, MPI_SUM, comm, &request[h] );
     //MPI_Iallreduce( MPI_IN_PLACE,&in[h*half_size], s-sent, MPI_INT, MPI_SUM, comm, &request[h] );
     MPI_Waitall(halfs,request,status);
     END_TEST;
 }
 double chunk_iallreduce(int * in, int * out, int * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm, int chunk){
-    int chunks = ceil((sizeof(int)*s)/(chunk*1.0f));
-    int last_chunk = (sizeof(int)*s)% chunk;
-    if(last_chunk==0) last_chunk=chunk;
+    int chunks = ( s <= chunk) ? 1 :  s/chunk;
+    if (chunks > 1 &&  s % chunk != 0) chunks++;
     MPI_Request * request = malloc(chunks*sizeof(MPI_Request));
     MPI_Status * status = malloc(chunks*sizeof(MPI_Status));
-    /*if(rank == 0)
-    printf("chunks %d and last chunk=%d", chunks, last_chunk);*/
+    //if(rank == 0)
+    //printf("chunks %d\n", chunks);
     int h;
     START_TEST;
+    size_t sent = 0;
     for(h=0;h<chunks-1;h++)
     {
         MPI_Iallreduce( &in[h*chunk], &out[h*chunk], chunk, MPI_INT, MPI_SUM, comm, &request[h] );
+        sent += chunk;
     }
     h = chunks-1;
-    MPI_Iallreduce( &in[h*chunk], &out[h*chunk], last_chunk, MPI_INT, MPI_SUM, comm, &request[h] );
+    MPI_Iallreduce( &in[h*chunk], &out[h*chunk], s-sent, MPI_INT, MPI_SUM, comm, &request[h] );
     MPI_Waitall(chunks,request,status);
     END_TEST;
 }
@@ -401,6 +404,8 @@ int main(int argc, char *argv[])
     // 1 will perform, the original allreduce
     int ori = (argc > 3) ? atoi(argv[3]):1;
     size_t range = (argc > 4) ? atol(argv[4]): 0;
+    int chunk = (argc > 5) ? atoi(argv[5]): 0;
+    int chunksize = (argc > 6) ? atoi(argv[6]): 262144; //262144 ints = 1MB
     if(range){
         ss = range;
         count = range;
@@ -409,7 +414,7 @@ int main(int argc, char *argv[])
     out = (int *)malloc( count * sizeof(int) );
     sol = (int *)malloc( count * sizeof(int) );
     if(rank == 0){
-        printf("#Test with %d proceses, iallreduce division: %sabled with %d parts\n", wsize, (opt == 0)? "dis" : "en", part);
+            printf("#Test with %d proceses\n #Iallreduce division: %sabled with %d parts\n #Chunk Iallreduce: %sabled with chunksize of %d\n", wsize, (opt == 0)? "dis" : "en", part, (chunk == 0)? "dis" : "en", chunksize );
     }
     
     if(rank == 0){
@@ -420,6 +425,9 @@ int main(int argc, char *argv[])
     
         if(opt == 1){
             printf("%d_half_iallreduce(%d)\t",part,wsize);
+        }
+        if(chunk == 1){
+            printf("%d_chunk_iallreduce(%d)\t",chunksize,wsize);
         }
     printf("\n");
     }
@@ -441,6 +449,13 @@ int main(int argc, char *argv[])
             if(rank == 0){
                 printf("%f\t",time_4hiallreduce);
             } 
+        }
+        if ( chunk == 1){
+	    double t_chunk = chunk_iallreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,chunksize);       
+            if(rank == 0){
+                printf("%f\t",t_chunk);
+            } 
+
         }
         /* OTHER ALLREDUCE POSSIBILITIES !!!!
         double time_rsa = allreduce_rsa(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,4);
