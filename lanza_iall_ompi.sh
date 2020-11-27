@@ -27,9 +27,9 @@ echo $SLURM_JOB_NODELIST
 export NODELIST=nodelist.$$
 exe="main_ompi"
 #dir2="full_test_ompi40_iall"
-dir="full_test_ompi_chunk"
+dir="full_test_ompi_10"
 procs=$1 # 16 24 32" # 40 48 56 64 72 80 88 96 104 112 120 128"
-part="1 2 4 6 8"
+part="10"
 mkdir -p ${dir}
 #mkdir -p ${dir2}
 srun -l bash -c 'hostname' | sort | awk '{print $2}' > $NODELIST
@@ -45,8 +45,8 @@ echo "-----------------------------------------------"
 
 for i in ${procs}
 do
-    mpirun -np $i --map-by node -mca btl openib --mca btl_openib_allow_ib true --oversubscribe \
-        --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 0 0 1 > ${dir}/allreduce_auto_${i}.dat
+    #mpirun -np $i --map-by node -mca btl openib --mca btl_openib_allow_ib true --oversubscribe \
+    #    --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 0 0 1 > ${dir}/allreduce_auto_${i}.dat
     #mpirun -np $i --map-by node -mca btl openib --mca btl_openib_allow_ib true --oversubscribe --mca coll libnbc,basic --mca coll_libnbc_iallreduce_algorithm 1  --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 1 1 0  > ${dir2}/iallreduce_auto_${i}.dat
     #for a in 1 2 3 4
     #do 
@@ -56,7 +56,8 @@ do
     #done
     for p in ${part}
     do
-	mpirun -np $i --map-by node -mca btl openib --mca btl_openib_allow_ib true --oversubscribe --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 1 $p 0 > ${dir2}/iallreduce_${i}_procs_${p}_parts.dat
+         #mpirun -np $i --map-by node -mca btl openib --mca btl_openib_allow_ib true --oversubscribe --mca coll libnbc,basic --mca coll_libnbc_iallreduce_algorithm 1  --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 1 $p 0  > ${dir}/iallreduce_best_${i}_procs_${p}_parts.dat
+        mpirun -np $i --map-by node -mca btl openib --mca btl_openib_allow_ib true --oversubscribe --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 1 $p 0 > ${dir}/iallreduce_${i}_procs_${p}_parts.dat
     done
 done
 

@@ -414,7 +414,7 @@ int main(int argc, char *argv[])
     out = (int *)malloc( count * sizeof(int) );
     sol = (int *)malloc( count * sizeof(int) );
     if(rank == 0){
-            printf("#Test with %d proceses\n #Iallreduce division: %sabled with %d parts\n #Chunk Iallreduce: %sabled with chunksize of %d\n", wsize, (opt == 0)? "dis" : "en", part, (chunk == 0)? "dis" : "en", chunksize );
+            printf("#Test with %d proceses\n #Iallreduce division: %sabled with %d parts\n #Chunk Iallreduce: %sabled with chunksize of %d (elems) %d~MB \n", wsize, (opt == 0)? "dis" : "en", part, (chunk == 0)? "dis" : "en", chunksize, chunksize*sizeof(int)/1024/1024);
     }
     
     if(rank == 0){

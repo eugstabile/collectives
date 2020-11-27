@@ -26,10 +26,10 @@ echo $SLURM_JOB_NODELIST
 
 export NODELIST=nodelist.$$
 exe="main_mpich"
-dir2="full_test_mpich_iall"
+dir2="full_test_mpich_10"
 dir="full_test_mpich_algs"
-procs="2 3 4 5 6 7 8 9" #64 128 224 256 448 512"
-part="1 2 4 6 8"
+procs=$1 #"2 3 4 5 6 7 8 9" #64 128 224 256 448 512"
+part="10" # 2 4 6 8"
 mkdir -p ${dir}
 mkdir -p ${dir2}
 srun -l bash -c 'hostname' | sort | awk '{print $2}' > $NODELIST

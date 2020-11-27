@@ -29,8 +29,10 @@ exe="main_ompi"
 #dir2="full_test_ompi40_iall"
 dir="full_test_ompi_chunk"
 procs=$1 # 16 24 32" # 40 48 56 64 72 80 88 96 104 112 120 128"
-# 1 2 4 MB
+# 1 2 4 8 16 MB
 chunk="262144 524288 1048576 2097152 4194304"
+# 32 64 128 256 MB
+chunk="8388608 16777216 33554432 67108864"
 mkdir -p ${dir}
 #mkdir -p ${dir2}
 srun -l bash -c 'hostname' | sort | awk '{print $2}' > $NODELIST
@@ -46,11 +48,11 @@ echo "-----------------------------------------------"
 
 for i in ${procs}
 do
-    mpirun -np $i --map-by node -mca btl openib --mca btl_openib_allow_ib true --oversubscribe \
-        --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 0 0 1 > ${dir}/allreduce_auto_${i}.dat
-    mpirun -np $i --map-by node -mca btl openib --mca btl_openib_allow_ib true --oversubscribe \
-         --mca coll libnbc,basic --mca coll_libnbc_iallreduce_algorithm 1  \
-         --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 1 1 0  > ${dir}/iallreduce_best_${i}.dat
+    #mpirun -np $i --map-by node -mca btl openib --mca btl_openib_allow_ib true --oversubscribe \
+    #    --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 0 0 1 > ${dir}/allreduce_auto_${i}.dat
+    #mpirun -np $i --map-by node -mca btl openib --mca btl_openib_allow_ib true --oversubscribe \
+    #     --mca coll libnbc,basic --mca coll_libnbc_iallreduce_algorithm 1  \
+    #     --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 1 1 0  > ${dir}/iallreduce_best_${i}.dat
     #for a in 1 2 3 4
     #do 
     #    mpirun -np $i --map-by node -mca btl openib --mca btl_openib_allow_ib true \

@@ -1,9 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <omp.h>
 #include <sys/time.h>
 
 
-#define TYPE int
+#define TYPE float
 
 void init(TYPE * in1, TYPE * in2, TYPE * sol, int size, int factor){
 
@@ -39,7 +40,7 @@ void calculaRango(size_t start, size_t end, size_t inc, TYPE * in1, TYPE * in2, 
         init(in1,in2,sol,c, f++);
     }
     t_all=t_all/reps;
-    printf("%lu %f %f %lu\n", c*sizeof(TYPE), t_all, t_all/c, res);
+    printf("%lu %f %f %lu\n", c*sizeof(TYPE), t_all, t_all/(c*sizeof(TYPE)), res);
 
 }
 
@@ -96,7 +97,7 @@ init(in1,in2,sol,count, f);
     #pragma omp master
     {
     printf("# Gamma test with %d threads\n", omp_get_num_threads());
-    printf("# Size time(us) gamma\n");
+    printf("# Size time(us) gamma(per byte)\n");
     }
 }
 
