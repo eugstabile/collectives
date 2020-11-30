@@ -54,9 +54,16 @@ void check(TYPE *out, TYPE * sol, int size, int rank){
         		time_all+=time;\
 			}\
     			return time_all/reps;
-		        
 
 
+#define END_TEST2	time = MPI_Wtime() - time;\
+        		MPI_Barrier(MPI_COMM_WORLD);\
+        		MPI_Reduce(&time,&time,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);\
+                        if(rank < bcast_size){\
+        		check(out,sol,s,rank);}\
+        		time_all+=time;\
+			}\
+    			return time_all/reps;
 
 double original_allreduce(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm){
     START_TEST;
@@ -102,6 +109,119 @@ double chunk_iallreduce(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,i
     MPI_Waitall(chunks,request,status);
     END_TEST;
 }
+
+double allreduce_dynamic_opt(int * in, int * out, int * sol, int s, int wsize,int red_size,int bcast_size,int rank, int reps,MPI_Comm comm){
+    if (red_size == bcast_size){
+        return original_allreduce(in, out, sol, s, wsize, rank, reps, comm);
+    }
+    MPI_Comm max_procs_comm;
+    MPI_Comm red_comm,bcast_comm_p;
+    MPI_Group max_procs_group, world_group;
+    MPI_Group red_gr, bcast_gr_p;
+    int * ranks = malloc(wsize * sizeof(int));
+    int i;
+    for(i = 0; i < wsize; i++){
+        ranks[i] = i;
+    }
+    MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+    MPI_Group_incl(world_group, wsize, ranks, &max_procs_group); //Used for barriers inside simulation
+    MPI_Group_incl(world_group, red_size, ranks, &red_gr);
+    MPI_Group_incl(world_group, bcast_size, ranks, &bcast_gr_p);
+    if (rank < red_size) {
+        MPI_Comm_create_group(MPI_COMM_WORLD, red_gr, 0, &red_comm);
+    }
+    if (rank < bcast_size) {
+        MPI_Comm_create_group(MPI_COMM_WORLD, bcast_gr_p, 0, &bcast_comm_p);
+    }
+    //MPI_Group_free(&world_group);
+
+    if(red_size > bcast_size){
+        MPI_Group * reduction_grs = malloc(bcast_size*sizeof(MPI_Group));
+        MPI_Comm * reduction_comms = malloc(bcast_size*sizeof(MPI_Comm));
+        int total = wsize;
+        int * new_ranks = malloc(total*sizeof(int));
+        int * sizes = malloc(red_size*sizeof(int));
+        int chunk=(int)ceil((1.0f*total)/bcast_size);
+
+        for(i = 0; i < total; i++){
+            new_ranks[(chunk*(i%bcast_size))+(i/bcast_size)] = ranks[i];
+        }
+
+        chunk = total/bcast_size;
+        int mod = total % bcast_size;
+        for(i=0;i<bcast_size;i++){
+            sizes[i] = chunk;
+            if(i < mod) sizes[i]++;
+
+        }
+        int start = 0;
+        for(i = 0; i < bcast_size; i++){
+            MPI_Group_incl(world_group, sizes[i], &new_ranks[start], &reduction_grs[i]);
+            start += sizes[i];
+        }
+        for(i = 0; i < bcast_size; i++){
+            if(rank%bcast_size == i){
+                MPI_Comm_create_group(MPI_COMM_WORLD, reduction_grs[i], 0, &reduction_comms[i]);
+            }
+        }
+        wsize = red_size; //Because the reduction size computes the result
+        START_TEST;
+
+            MPI_Reduce( in, out, s, MPI_INT, MPI_SUM,0, reduction_comms[rank%bcast_size]);
+
+
+            if(rank < bcast_size){
+                MPI_Allreduce(out,out,s,MPI_INT,MPI_SUM,bcast_comm_p);
+            }
+            END_TEST2
+        }
+        else{ // bcast_size > red_size
+            MPI_Group *bcast_gr;
+            bcast_gr= malloc(red_size*sizeof(MPI_Group));
+            MPI_Comm * bcast_comm = malloc(red_size*sizeof(MPI_Comm));
+            int total = wsize;
+            wsize = red_size; //Because the reduction size computes the result
+            int * new_ranks = malloc(total*sizeof(int));
+            int * sizes = malloc(red_size*sizeof(int));
+            int chunk=(int)ceil((1.0f*total)/red_size);
+            for(i = 0; i < total; i++){
+                //new_ranks[i] = ranks[(chunk*(i%red_size))+(i/red_size)];
+                new_ranks[(chunk*(i%red_size))+(i/red_size)] = ranks[i];
+                //printf("rank %d. new_ranks[%d]=%d\n",rank,i,new_ranks[i]);
+            }
+            chunk = total/red_size;
+            int mod = total % red_size;
+            for(i=0;i<red_size;i++){
+                sizes[i] = chunk;
+                if(i < mod) sizes[i]++;
+                //    printf("rank %d. sizes[%d]=%d\n",rank,i,sizes[i]);
+            }
+            int start = 0;
+            for(i = 0; i < red_size; i++){
+                MPI_Group_incl(world_group, sizes[i], &new_ranks[start], &bcast_gr[i]);
+                start += sizes[i];
+            }
+            for(i = 0; i < red_size; i++){
+                if(rank%red_size == i){
+                    MPI_Comm_create_group(MPI_COMM_WORLD, bcast_gr[i], 0, &bcast_comm[i]);
+                }
+            }
+            START_TEST;
+                if(rank < red_size){
+                    MPI_Allreduce( in, out, s, MPI_INT, MPI_SUM, red_comm );
+                }//Now we broadcast with many communicators as process in the reduction
+
+                MPI_Bcast( out, s, MPI_INT, 0, bcast_comm[rank%red_size]);
+
+                END_TEST2
+
+            }
+            return -1;
+        }
+
+
+
+
 
 int main(int argc, char *argv[])
 {
