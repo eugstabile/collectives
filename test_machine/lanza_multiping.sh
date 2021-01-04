@@ -30,11 +30,15 @@ srun -l bash -c 'hostname' | sort | awk '{print $2}' > $NODELIST
 
 cat $NODELIST > myhostfile.$$ 
 echo "-----------------------------------------------"
-
+p=$1
 #export I_MPI_FABRICS=shm:ofi
 #export FI_PROVIDER=mlx
 #export UCX_TLS=all #ud,sm,self
-mpirun -n 8 --map-by node --display-map  -mca btl openib --mca btl_openib_allow_ib true --oversubscribe   --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./bw_multiping
+   #--mca pml ob1  --mca btl ^openib --mca btl_tcp_if_include enp1s0f0 \
+mpirun -n $p --map-by node --display-map \
+   -mca btl openib --mca btl_openib_allow_ib true \
+   --oversubscribe   --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 \
+  ./bw_multiping > multiping_ompi_ib_${p}.dat
 #mpirun -np 2 -f myhostfile ./lat_bw_mpi
 
 # End of submit file

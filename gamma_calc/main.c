@@ -27,17 +27,17 @@ void calculaRango(size_t start, size_t end, size_t inc, TYPE * in1, TYPE * in2, 
     double t_all =0.0;
     size_t res = 0;
     for (int r=0; r < reps; r++){
-        gettimeofday(&t_start, NULL);
+    gettimeofday(&t_start, NULL);
        //#pragma omp parallel for 
        for (size_t i = 0; i < c; i++){
             sol[i] = in1[i]+in2[i];
         }
-        gettimeofday(&t_end, NULL);
-        t_all+=((t_end.tv_sec * 1000000 + t_end.tv_usec) - (t_start.tv_sec * 1000000 + t_start.tv_usec));
-        #pragma omp parallel for
+    gettimeofday(&t_end, NULL);
+    t_all+=((t_end.tv_sec * 1000000 + t_end.tv_usec) - (t_start.tv_sec * 1000000 + t_start.tv_usec));
+    //#pragma omp parallel for
         for (size_t i = 0; i < c; i ++)
            res += sol[i];
-        init(in1,in2,sol,c, f++);
+    //    init(in1,in2,sol,c, f++);
     }
     t_all=t_all/reps;
     printf("%lu %f %f %lu\n", c*sizeof(TYPE), t_all, t_all/(c*sizeof(TYPE)), res);
@@ -80,7 +80,7 @@ size_t count = 134217728*2; // 1GB
 TYPE *in1, *in2, *sol;
 
 
- int reps = 100;
+ int reps = 1000;
 
 size_t s, ss=1;
 

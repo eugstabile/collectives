@@ -20,15 +20,15 @@ int main(int argc, char** argv) {
   // Get the number of processes
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  int data = 16*1024*1024;
+  int data = 64*1024*1024;
   char * buff = malloc(data);
   char * buff2 = malloc(data);
-  int reps = 100000;
+  int reps = 1000;
   //#if(world_size != 2) { printf("We need 2 process!\n"); return 0;}
   // Get the rank of the process
   int world_rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
+  MPI_Request rt;
   // Get the name of the processor
   char processor_name[MPI_MAX_PROCESSOR_NAME];
   int name_len;
@@ -48,22 +48,23 @@ int main(int argc, char** argv) {
   //printf("Test starting");
   //from 0 to 256 bytes
   MPI_Barrier(MPI_COMM_WORLD);
-        if (world_rank < 2){ sleep(2);}
-        if (world_rank < 4){ sleep(2);}
-        if (world_rank < 6){ sleep(2);}
+//        if (world_rank < 2){ sleep(2);}
+//        if (world_rank < 4){ sleep(2);}
+//        if (world_rank < 6){ sleep(2);}
         double start = MPI_Wtime();
         int r;
 	for(r = 0; r< reps; r++){
                 double instart = MPI_Wtime();
 		if(world_rank %2 == 0){
-			MPI_Ssend(buff,data,MPI_CHAR,dest,0,MPI_COMM_WORLD);
+			MPI_Isend(buff,data,MPI_CHAR,dest,0,MPI_COMM_WORLD, &rt);
 			MPI_Recv(buff2,data,MPI_CHAR,dest,1,MPI_COMM_WORLD,&st);
 			
                 }
 		else{
 			MPI_Recv(buff2,data,MPI_CHAR,dest,0,MPI_COMM_WORLD, &st);
-			MPI_Ssend(buff,data,MPI_CHAR,dest,1,MPI_COMM_WORLD);
+			MPI_Isend(buff,data,MPI_CHAR,dest,1,MPI_COMM_WORLD, &rt);
 		}
+                MPI_Wait(&rt, &st);
 	        double inend = MPI_Wtime();
 	        double time = (inend-instart)/2.0;
                 if (world_rank % 2 == 0){

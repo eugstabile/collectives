@@ -34,7 +34,9 @@ echo "-----------------------------------------------"
 #export I_MPI_FABRICS=shm:ofi
 #export FI_PROVIDER=mlx
 #export UCX_TLS=all #ud,sm,self
-mpirun -np 2 -iface ib0 -f myhostfile ./lat_bw_mpi_mpich
+#mpiexec -n 2 -host myhostfile ./lat_bw_mpi_mpich > mpich.dat
+#mpirun -np 2 -f myhostfile ./lat_bw_mpi_mpich > mpich_noiface.dat
+srun -n 2 -iface enp1s0f0 -f myhostfile ./lat_bw_mpi_mpich > mpich_iface_srun.dat
 #mpirun -np 2 -f myhostfile ./lat_bw_mpi
 
 # End of submit file
