@@ -71,8 +71,8 @@ static void getHostName(char* hostname, int maxlen) {
 #define END_TEST	time = MPI_Wtime() - time;\
         		MPI_Barrier(MPI_COMM_WORLD);\
         		MPI_Reduce(&time,&time2,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);\
-                        if(rank == 0) time = time2;\
-        		check(sendbuff,hsendbuff,hrecvbuff,recvbuff,size,sol,comm);\
+                        if(myRank == 0) time = time2;\
+        		check(sendbuff,hsendbuff,hrecvbuff,recvbuff,size,sol,comm, myRank);\
         		time_all+=time;\
 			}\
     			return time_all/reps;
@@ -104,21 +104,22 @@ int myreturn(float * sendbuff, float * recvbuff, float * hsendbuff, float * hrec
 
 }
 
-void check(float * sendbuff, float * hsendbuff, float * hrecvbuff, float * recvbuff, int size, float * sol, ncclComm_t comm){
+void check(float * sendbuff, float * hsendbuff, float * hrecvbuff, float * recvbuff, int size, float * sol, ncclComm_t comm, int myRank){
 
     CUDACHECK(cudaMemcpy(hrecvbuff, recvbuff, size * sizeof(float), cudaMemcpyDeviceToHost));
+    int i;
     for(i=0;i<size;i++){
         if(sol[i] != hrecvbuff[i]){
             printf("[MPI Rank %d] Error at element %d. Expcted %f, value %f\n", myRank,i, sol[i], hrecvbuff[i]);
             int r = myreturn(sendbuff, recvbuff, hsendbuff, hrecvbuff, sol, comm, 1);
-            exit 1;
+            exit;
         }
     }
 
 }
 
 double ori_nccl_allreduce(float * sendbuff, float * recvbuff, float * hsendbuff, float * hrecvbuff,
-                          int size, float * sol, ncclComm_t comm, cudaStream_t * s){
+                          int size, float * sol, ncclComm_t comm, cudaStream_t * s, int myRank, int nRanks, int reps){
 
     //communicating using NCCL
     START_TEST
@@ -139,7 +140,7 @@ int main(int argc, char* argv[])
 
 
     int myRank, nRanks, localRank = 0;
-
+    int reps = 100;
 
     //initializing MPI
     MPICHECK(MPI_Init(&argc, &argv));
@@ -185,7 +186,9 @@ int main(int argc, char* argv[])
     CUDACHECK(cudaSetDevice(localRank));
     CUDACHECK(cudaMalloc((void *)&sendbuff, size * sizeof(float)));
     CUDACHECK(cudaMalloc((void *)&recvbuff, size * sizeof(float)));
-    CUDACHECK(cudaStreamCreate(&s));
+    for(int i = 0; i < streams; i++){
+        CUDACHECK(cudaStreamCreate(&s[i]));
+    }
 
     hsendbuff = malloc(size*sizeof(float));
     hrecvbuff = malloc(size*sizeof(float));
@@ -195,8 +198,9 @@ int main(int argc, char* argv[])
     NCCLCHECK(ncclCommInitRank(&comm, nRanks, id, myRank));
 
     if(ori){
-        double ori_time = ori_nccl_allreduce(sendbuff, recvbuff, hsendbuff, hrecvbuff, size, sol, comm, s);
-    }
+        double ori_time = ori_nccl_allreduce(sendbuff, recvbuff, hsendbuff, hrecvbuff, size, sol, comm, s, myRank,nRanks, reps);
+        printf("%d %f\n", size* sizeof(float), ori_time);
+     }
 
     printf("[MPI Rank %d] Success \n", myRank);
     return myreturn(sendbuff, recvbuff, hsendbuff, hrecvbuff, sol, comm, 0);
