@@ -161,6 +161,11 @@ int main(int argc, char* argv[])
     ori = (argc > 1) ? atoi(argv[1]) : 1;
     parts = (argc > 2) ? atoi(argv[2]) : 0;
     streams = (argc > 3) ? atoi(argv[3]) : 1;
+    int chunk = (argc > 4) ? atoi(argv[4]): 0;
+    int chunksize = (argc > 5) ? atoi(argv[5]): 262144; //262144 ints = 1MB
+    size_t range_s = (argc > 6) ? atol(argv[6]): 0;
+    size_t range_end = (argc > 7) ? atol(argv[7]): 0;
+
 
     ncclUniqueId id;
     ncclComm_t comm;
@@ -200,9 +205,9 @@ int main(int argc, char* argv[])
     if(myRank == 0){
         // Print a summary of the test
         printf("#Test with %d proceses\n",nRanks);
-        printf("#Iallreduce division: %sabled with %d parts\n",(parts == 0)? "dis" : "en", parts);
-        //printf("#Chunk Iallreduce: %sabled with chunksize of %d (elems) %d~MB \n",
-        //       (chunk == 0)? "dis" : "en", chunksize, chunksize*sizeof(TYPE)/1024/1024);
+        printf("#Segmentation: %sabled with %d parts and %d streams\n",(parts == 0)? "dis" : "en", parts, streams);
+        printf("#Chunk nccl: %sabled with chunksize of %d (elems) %d~MB and %d streams\n",
+               (chunk == 0)? "dis" : "en", chunksize, chunksize*sizeof(float)/1024/1024, streams);
     }
 
     if(myRank == 0){
@@ -213,19 +218,26 @@ int main(int argc, char* argv[])
         }
 
         if(parts){
-            printf("%d_half_nccl_allreduce(%d)\t",parts,nRanks);
+            printf("%d_nccl_allreduce(%d)_in_%d\t",parts,nRanks, streams);
         }
-        //if(chunk == 1){
-        //    printf("%d_chunk_iallreduce(%d)\t",chunksize,wsize);
-        //}
+        if(chunk == 1){
+            printf("%d_chunk_nccl_allreduce(%d)_in_%d\t",chunksize,nRanks,streams);
+        }
         printf("\n");
     }
+        size_t init_count=1;
+        size_t end_count = size;
+    for (size_t s=init_count; s<=end_count; s*=2) {
 
-
-    if(ori){
-        double ori_time = ori_nccl_allreduce(sendbuff, recvbuff, hsendbuff, hrecvbuff, size, sol, comm, s, myRank,nRanks, reps);
-        if(myRank==0) printf("%d\t %f\n", size* sizeof(float), ori_time);
-     }
+        if (rank == 0)
+            printf("%lu\t\t", s * sizeof(float));
+        if (ori) {
+            double ori_time = ori_nccl_allreduce(sendbuff, recvbuff, hsendbuff, hrecvbuff, size, sol, comm, s, myRank,
+                                                 nRanks, reps);
+            if (myRank == 0) printf("%f\t", ori_time);
+        }
+        printf("\n");
+    }
 
     printf("[MPI Rank %d] Success \n", myRank);
     return myreturn(sendbuff, recvbuff, hsendbuff, hrecvbuff, sol, comm, 0);
