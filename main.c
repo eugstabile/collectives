@@ -372,7 +372,7 @@ int main(int argc, char *argv[])
     int i, r; 
     size_t s, ss=1;
     int rank, wsize;
-    int reps = 100;
+    int reps = 1;
     int reps2;
     
 
