@@ -3,11 +3,12 @@
 //
 
 #include <stdio.h>
-#include "cuda_runtime.h"
+#include "cuda_runtime_api.h"
 #include "nccl.h"
 #include "mpi.h"
 #include <unistd.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 
 #define MPICHECK(cmd) do {                          \
@@ -63,7 +64,7 @@ static void getHostName(char* hostname, int maxlen) {
 
 int main(int argc, char* argv[])
 {
-    int size = 32*1024*1024;
+    int size = 32;
 
 
     int myRank, nRanks, localRank = 0;
@@ -90,6 +91,8 @@ int main(int argc, char* argv[])
     ncclUniqueId id;
     ncclComm_t comm;
     float *sendbuff, *recvbuff;
+    float *hsendbuff, *hrecvbuff;
+    float *sol;
     cudaStream_t s;
 
 
@@ -100,11 +103,22 @@ int main(int argc, char* argv[])
 
     //picking a GPU based on localRank, allocate device buffers
     CUDACHECK(cudaSetDevice(localRank));
-    CUDACHECK(cudaMalloc(&sendbuff, size * sizeof(float)));
-    CUDACHECK(cudaMalloc(&recvbuff, size * sizeof(float)));
+    CUDACHECK(cudaMalloc((void *)&sendbuff, size * sizeof(float)));
+    CUDACHECK(cudaMalloc((void *)&recvbuff, size * sizeof(float)));
     CUDACHECK(cudaStreamCreate(&s));
 
-
+    hsendbuff = malloc(size*sizeof(float));
+    hrecvbuff = malloc(size*sizeof(float));
+    sol = malloc(size*sizeof(float));
+    int i=0;
+    for(i=0;i<size;i++){
+        hsendbuff[i]= i * 1.0f; 
+        hrecvbuff[i]= 0.0f;
+        sol[i]= i* 1.0f * nRanks;  
+    }
+    
+    CUDACHECK(cudaMemcpy(sendbuff, hsendbuff, size * sizeof(float), cudaMemcpyHostToDevice));
+    CUDACHECK(cudaMemcpy(recvbuff, hrecvbuff, size * sizeof(float), cudaMemcpyHostToDevice));
     //initializing NCCL
     NCCLCHECK(ncclCommInitRank(&comm, nRanks, id, myRank));
 
@@ -118,10 +132,30 @@ int main(int argc, char* argv[])
     CUDACHECK(cudaStreamSynchronize(s));
 
 
+    CUDACHECK(cudaMemcpy(hrecvbuff, recvbuff, size * sizeof(float), cudaMemcpyDeviceToHost));
+    
+
+    //for(i=0;i<size;i++){
+    //    printf("%f ",hrecvbuff[i]);
+    //}
+    //printf("\n");
+    for(i=0;i<size;i++){
+        if(sol[i] != hrecvbuff[i]){
+            printf("[MPI Rank %d] Error at element %d. Expcted %f, value %f\n", myRank,i, sol[i], hrecvbuff[i]);
+            CUDACHECK(cudaFree(sendbuff));
+            CUDACHECK(cudaFree(recvbuff));
+            free(hsendbuff);
+            free(hrecvbuff);
+            ncclCommDestroy(comm);
+            MPICHECK(MPI_Finalize());
+            return 1;
+        }
+    }
     //free device buffers
     CUDACHECK(cudaFree(sendbuff));
     CUDACHECK(cudaFree(recvbuff));
-
+    free(hsendbuff);
+    free(hrecvbuff);
 
     //finalizing NCCL
     ncclCommDestroy(comm);

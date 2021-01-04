@@ -26,10 +26,10 @@ echo $SLURM_JOB_NODELIST
 
 export NODELIST=nodelist.$$
 exe="main_mpich"
-dir="full_test_mpich"
-dir="test_4_mpich"
-procs="4" #64 128 224 256 448 512"
-part="1 2 3 4 5 6 7 8"
+dir="full_test_mpich_ib"
+procs=$1 #64 128 224 256 448 512"
+part=""
+face="ib0"
 mkdir -p ${dir}
 srun -l bash -c 'hostname' | sort | awk '{print $2}' > $NODELIST
 
@@ -43,11 +43,11 @@ echo "-----------------------------------------------"
 for i in ${procs}
 do
         export MPIR_CVAR_ALLREDUCE_INTRA_ALGORITHM=auto
-	mpirun -np $i -iface ib0 -f myhostfile.$$  ./${exe} 0 0 1 > ${dir}/${NODELIST}_${i}.dat
-        #export MPIR_CVAR_ALLREDUCE_INTRA_ALGORITHM=recursive_doubling
-	#mpirun -np $i -iface ib0 -f myhostfile  ./${exe} 0 0 1 > ${dir}/allreduce_1_${i}.dat
-        #export MPIR_CVAR_ALLREDUCE_INTRA_ALGORITHM=reduce_scatter_allgather
-        #mpirun -np $i -iface ib0 -f myhostfile  ./${exe} 0 0 1 > ${dir}/allreduce_2_${i}.dat
+	mpirun -np $i -iface ${face} -f myhostfile.$$  ./${exe} 0 0 1 > ${dir}/allreduce_auto_${i}.dat
+        export MPIR_CVAR_ALLREDUCE_INTRA_ALGORITHM=recursive_doubling
+	mpirun -np $i -iface ${face} -f myhostfile  ./${exe} 0 0 1 > ${dir}/allreduce_1_${i}.dat
+        export MPIR_CVAR_ALLREDUCE_INTRA_ALGORITHM=reduce_scatter_allgather
+        mpirun -np $i -iface ${face} -f myhostfile  ./${exe} 0 0 1 > ${dir}/allreduce_2_${i}.dat
         unset MPIR_CVAR_ALLREDUCE_INTRA_ALGORITHM
         #for p in ${part}
         #do
