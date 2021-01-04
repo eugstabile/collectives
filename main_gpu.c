@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
     size_t size = 134217728*2; // 1 GB
 
     int myRank, nRanks, localRank = 0;
-    int reps = 100;
+    int reps = 5;
 
     //initializing MPI
     MPICHECK(MPI_Init(&argc, &argv));
