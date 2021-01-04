@@ -61,6 +61,77 @@ static void getHostName(char* hostname, int maxlen) {
     }
 }
 
+#define START_TEST      double time,time2;\
+			double time_all = 0.0;\
+			int r;\
+			for (r = 0; r < reps; r++){\
+		        init(sendbuff,hsendbuff, recvbuff, hrecvbuff, sol, size, nRanks);\
+		        time = MPI_Wtime();\
+
+#define END_TEST	time = MPI_Wtime() - time;\
+        		MPI_Barrier(MPI_COMM_WORLD);\
+        		MPI_Reduce(&time,&time2,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);\
+                        if(rank == 0) time = time2;\
+        		check(sendbuff,hsendbuff,hrecvbuff,recvbuff,size,sol,comm);\
+        		time_all+=time;\
+			}\
+    			return time_all/reps;
+
+void init(float * sendbuff, float * hsendbuff, float * recvbuff, float * hrecvbuff, float * sol, int size, int nRanks){
+
+    int i=0;
+    for(i=0;i<size;i++){
+        hsendbuff[i]= i * 1.0f;
+        hrecvbuff[i]= 0.0f;
+        sol[i]= i* 1.0f * nRanks;
+    }
+
+    CUDACHECK(cudaMemcpy(sendbuff, hsendbuff, size * sizeof(float), cudaMemcpyHostToDevice));
+    CUDACHECK(cudaMemcpy(recvbuff, hrecvbuff, size * sizeof(float), cudaMemcpyHostToDevice));
+}
+
+int myreturn(float * sendbuff, float * recvbuff, float * hsendbuff, float * hrecvbuff, float * sol,
+             ncclComm_t comm, int ret){
+
+    CUDACHECK(cudaFree(sendbuff));
+    CUDACHECK(cudaFree(recvbuff));
+    free(hsendbuff);
+    free(hrecvbuff);
+    free(sol);
+    ncclCommDestroy(comm);
+    MPICHECK(MPI_Finalize());
+    return ret;
+
+}
+
+void check(float * sendbuff, float * hsendbuff, float * hrecvbuff, float * recvbuff, int size, float * sol, ncclComm_t comm){
+
+    CUDACHECK(cudaMemcpy(hrecvbuff, recvbuff, size * sizeof(float), cudaMemcpyDeviceToHost));
+    for(i=0;i<size;i++){
+        if(sol[i] != hrecvbuff[i]){
+            printf("[MPI Rank %d] Error at element %d. Expcted %f, value %f\n", myRank,i, sol[i], hrecvbuff[i]);
+            int r = myreturn(sendbuff, recvbuff, hsendbuff, hrecvbuff, sol, comm, 1);
+            exit 1;
+        }
+    }
+
+}
+
+double ori_nccl_allreduce(float * sendbuff, float * recvbuff, float * hsendbuff, float * hrecvbuff,
+                          int size, float * sol, ncclComm_t comm, cudaStream_t * s){
+
+    //communicating using NCCL
+    START_TEST
+    NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclSum,
+                            comm, s[0]));
+
+
+    //completing NCCL operation by synchronizing on the CUDA stream
+    CUDACHECK(cudaStreamSynchronize(s[0]));
+    END_TEST
+
+
+}
 
 int main(int argc, char* argv[])
 {
@@ -87,13 +158,22 @@ int main(int argc, char* argv[])
         if (hostHashs[p] == hostHashs[myRank]) localRank++;
     }
 
+    // Usage: main_gpu [ori [parts [streams]]]
+    // ori: 0|1 indicates if the original allreduce must be done (default 1)
+    // parts: >=0 indicates the number of allreduce divisions (default 0)
+    // streams: 0<x<=parts indicates the number of streams (default 1)
+    int ori, parts, streams;
+
+    ori = (argc > 1) ? atoi(argv[1]) : 1;
+    parts = (argc > 2) ? atoi(argv[2]) : 0;
+    streams = (argc > 3) ? atoi(argv[3]) : 1;
 
     ncclUniqueId id;
     ncclComm_t comm;
     float *sendbuff, *recvbuff;
     float *hsendbuff, *hrecvbuff;
     float *sol;
-    cudaStream_t s;
+    cudaStream_t * s = malloc(streams*sizeof(cudaStream_t));
 
 
     //get NCCL unique ID at rank 0 and broadcast it to all others
@@ -110,61 +190,14 @@ int main(int argc, char* argv[])
     hsendbuff = malloc(size*sizeof(float));
     hrecvbuff = malloc(size*sizeof(float));
     sol = malloc(size*sizeof(float));
-    int i=0;
-    for(i=0;i<size;i++){
-        hsendbuff[i]= i * 1.0f; 
-        hrecvbuff[i]= 0.0f;
-        sol[i]= i* 1.0f * nRanks;  
-    }
-    
-    CUDACHECK(cudaMemcpy(sendbuff, hsendbuff, size * sizeof(float), cudaMemcpyHostToDevice));
-    CUDACHECK(cudaMemcpy(recvbuff, hrecvbuff, size * sizeof(float), cudaMemcpyHostToDevice));
+
     //initializing NCCL
     NCCLCHECK(ncclCommInitRank(&comm, nRanks, id, myRank));
 
-
-    //communicating using NCCL
-    NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclSum,
-                            comm, s));
-
-
-    //completing NCCL operation by synchronizing on the CUDA stream
-    CUDACHECK(cudaStreamSynchronize(s));
-
-
-    CUDACHECK(cudaMemcpy(hrecvbuff, recvbuff, size * sizeof(float), cudaMemcpyDeviceToHost));
-    
-
-    //for(i=0;i<size;i++){
-    //    printf("%f ",hrecvbuff[i]);
-    //}
-    //printf("\n");
-    for(i=0;i<size;i++){
-        if(sol[i] != hrecvbuff[i]){
-            printf("[MPI Rank %d] Error at element %d. Expcted %f, value %f\n", myRank,i, sol[i], hrecvbuff[i]);
-            CUDACHECK(cudaFree(sendbuff));
-            CUDACHECK(cudaFree(recvbuff));
-            free(hsendbuff);
-            free(hrecvbuff);
-            ncclCommDestroy(comm);
-            MPICHECK(MPI_Finalize());
-            return 1;
-        }
+    if(ori){
+        double ori_time = ori_nccl_allreduce(sendbuff, recvbuff, hsendbuff, hrecvbuff, size, sol, comm, s);
     }
-    //free device buffers
-    CUDACHECK(cudaFree(sendbuff));
-    CUDACHECK(cudaFree(recvbuff));
-    free(hsendbuff);
-    free(hrecvbuff);
-
-    //finalizing NCCL
-    ncclCommDestroy(comm);
-
-
-    //finalizing MPI
-    MPICHECK(MPI_Finalize());
-
 
     printf("[MPI Rank %d] Success \n", myRank);
-    return 0;
+    return myreturn(sendbuff, recvbuff, hsendbuff, hrecvbuff, sol, comm, 0);
 }
