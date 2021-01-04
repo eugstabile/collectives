@@ -77,7 +77,7 @@ static void getHostName(char* hostname, int maxlen) {
 			}\
     			return time_all/reps;
 
-void init(float * sendbuff, float * hsendbuff, float * recvbuff, float * hrecvbuff, float * sol, int size, int nRanks){
+void init(float * sendbuff, float * hsendbuff, float * recvbuff, float * hrecvbuff, float * sol, size_t size, int nRanks){
 
     int i=0;
     for(i=0;i<size;i++){
@@ -104,7 +104,7 @@ int myreturn(float * sendbuff, float * recvbuff, float * hsendbuff, float * hrec
 
 }
 
-void check(float * sendbuff, float * hsendbuff, float * hrecvbuff, float * recvbuff, int size, float * sol, ncclComm_t comm, int myRank){
+void check(float * sendbuff, float * hsendbuff, float * hrecvbuff, float * recvbuff, size_t size, float * sol, ncclComm_t comm, int myRank){
 
     CUDACHECK(cudaMemcpy(hrecvbuff, recvbuff, size * sizeof(float), cudaMemcpyDeviceToHost));
     int i;
@@ -115,29 +115,22 @@ void check(float * sendbuff, float * hsendbuff, float * hrecvbuff, float * recvb
             exit;
         }
     }
-
 }
 
 double ori_nccl_allreduce(float * sendbuff, float * recvbuff, float * hsendbuff, float * hrecvbuff,
-                          int size, float * sol, ncclComm_t comm, cudaStream_t * s, int myRank, int nRanks, int reps){
-
+                          size_t size, float * sol, ncclComm_t comm, cudaStream_t * s, int myRank, int nRanks, int reps){
     //communicating using NCCL
     START_TEST
     NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclSum,
                             comm, s[0]));
-
-
     //completing NCCL operation by synchronizing on the CUDA stream
     CUDACHECK(cudaStreamSynchronize(s[0]));
     END_TEST
-
-
 }
 
 int main(int argc, char* argv[])
 {
-    int size = 32;
-
+    size_t size = 134217728*2; // 1 GB
 
     int myRank, nRanks, localRank = 0;
     int reps = 100;
@@ -176,6 +169,13 @@ int main(int argc, char* argv[])
     float *sol;
     cudaStream_t * s = malloc(streams*sizeof(cudaStream_t));
 
+    char processor_name[MPI_MAX_PROCESSOR_NAME];
+    int name_len;
+    MPI_Get_processor_name(processor_name, &name_len);
+
+    // Print off a hello world message so we ensure the correct MPI mapping (one per node)
+    printf("#Hello world from processor %s, rank %d out of %d processors\n",
+           processor_name, myRank, nRanks);
 
     //get NCCL unique ID at rank 0 and broadcast it to all others
     if (myRank == 0) ncclGetUniqueId(&id);
@@ -197,9 +197,34 @@ int main(int argc, char* argv[])
     //initializing NCCL
     NCCLCHECK(ncclCommInitRank(&comm, nRanks, id, myRank));
 
+    if(myRank == 0){
+        // Print a summary of the test
+        printf("#Test with %d proceses\n",nRanks);
+        printf("#Iallreduce division: %sabled with %d parts\n",(parts == 0)? "dis" : "en", parts);
+        //printf("#Chunk Iallreduce: %sabled with chunksize of %d (elems) %d~MB \n",
+        //       (chunk == 0)? "dis" : "en", chunksize, chunksize*sizeof(TYPE)/1024/1024);
+    }
+
+    if(myRank == 0){
+        // Prepare the output header
+        printf("#SIZE(bytes)\t");
+        if(ori == 1){
+            printf("nccl_allreduce(%d)\t",nRanks);
+        }
+
+        if(parts){
+            printf("%d_half_nccl_allreduce(%d)\t",parts,nRanks);
+        }
+        //if(chunk == 1){
+        //    printf("%d_chunk_iallreduce(%d)\t",chunksize,wsize);
+        //}
+        printf("\n");
+    }
+
+
     if(ori){
         double ori_time = ori_nccl_allreduce(sendbuff, recvbuff, hsendbuff, hrecvbuff, size, sol, comm, s, myRank,nRanks, reps);
-        printf("%d %f\n", size* sizeof(float), ori_time);
+        if(myRank==0) printf("%d\t %f\n", size* sizeof(float), ori_time);
      }
 
     printf("[MPI Rank %d] Success \n", myRank);
