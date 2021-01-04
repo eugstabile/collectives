@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
     float *sendbuff, *recvbuff;
     float *hsendbuff, *hrecvbuff;
     float *sol;
-    cudaStream_t * s = malloc(streams*sizeof(cudaStream_t));
+    cudaStream_t * st = malloc(streams*sizeof(cudaStream_t));
 
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     int name_len;
@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
     CUDACHECK(cudaMalloc((void *)&sendbuff, size * sizeof(float)));
     CUDACHECK(cudaMalloc((void *)&recvbuff, size * sizeof(float)));
     for(int i = 0; i < streams; i++){
-        CUDACHECK(cudaStreamCreate(&s[i]));
+        CUDACHECK(cudaStreamCreate(&st[i]));
     }
 
     hsendbuff = malloc(size*sizeof(float));
@@ -229,14 +229,14 @@ int main(int argc, char* argv[])
         size_t end_count = size;
     for (size_t s=init_count; s<=end_count; s*=2) {
 
-        if (rank == 0)
+        if (myRank == 0)
             printf("%lu\t\t", s * sizeof(float));
         if (ori) {
-            double ori_time = ori_nccl_allreduce(sendbuff, recvbuff, hsendbuff, hrecvbuff, size, sol, comm, s, myRank,
+            double ori_time = ori_nccl_allreduce(sendbuff, recvbuff, hsendbuff, hrecvbuff, s, sol, comm, st, myRank,
                                                  nRanks, reps);
             if (myRank == 0) printf("%f\t", ori_time);
         }
-        printf("\n");
+        if (myRank == 0) printf("\n");
     }
 
     printf("[MPI Rank %d] Success \n", myRank);
