@@ -72,7 +72,7 @@ static void getHostName(char* hostname, int maxlen) {
         		MPI_Barrier(MPI_COMM_WORLD);\
         		MPI_Reduce(&time,&time2,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);\
                         if(myRank == 0) time = time2;\
-        		check(sendbuff,hsendbuff,hrecvbuff,recvbuff,size,sol,comm, myRank);\
+        		/*check(sendbuff,hsendbuff,hrecvbuff,recvbuff,size,sol,comm, myRank);*/\
         		time_all+=time;\
 			}\
     			return time_all/reps;
@@ -128,12 +128,42 @@ double ori_nccl_allreduce(float * sendbuff, float * recvbuff, float * hsendbuff,
     END_TEST
 }
 
+
+double part_nccl_allreduce(float * sendbuff, float * recvbuff, float * hsendbuff, float * hrecvbuff,
+                          size_t size, float * sol, ncclComm_t comm, cudaStream_t * st, int numstreams, int myRank, int nRanks, int reps, int halfs){
+    //communicating using NCCL
+ 
+    if(size < halfs){halfs=1;}
+    if(numstreams > halfs) numstreams = halfs;
+    size_t half_size = size/halfs;
+    int h, s;
+    START_TEST;
+    size_t sent = 0;
+    for(h=0;h<halfs-1;h++)
+    {
+        NCCLCHECK(ncclAllReduce((const void*)&sendbuff[h*half_size], (void*)&recvbuff[h*half_size], half_size, ncclFloat, ncclSum,
+                            comm, st[h%numstreams]));
+        sent+=half_size;
+  //   if(myRank==0) printf("Allreduce %d of size %d (total:%d)\n",h,half_size,sent);
+    }
+    h=halfs-1;
+    NCCLCHECK(ncclAllReduce((const void*)&sendbuff[h*half_size], (void*)&recvbuff[h*half_size], size-sent, ncclFloat, ncclSum,
+              comm, st[h%numstreams]));
+//     if(myRank==0) printf("Allreduce %d of size %d (total:%d)\n",h,size-sent, size);
+    //completing NCCL operation by synchronizing on the CUDA stream
+    for (s=0; s<numstreams; s++){
+         CUDACHECK(cudaStreamSynchronize(st[s]));
+    }
+    END_TEST
+}
+
+
 int main(int argc, char* argv[])
 {
     size_t size = 134217728*2; // 1 GB
 
     int myRank, nRanks, localRank = 0;
-    int reps = 5;
+    int reps = 100;
 
     //initializing MPI
     MPICHECK(MPI_Init(&argc, &argv));
@@ -142,7 +172,7 @@ int main(int argc, char* argv[])
 
 
     //calculating localRank based on hostname which is used in selecting a GPU
-    uint64_t hostHashs[nRanks];
+/*    uint64_t hostHashs[nRanks];
     char hostname[1024];
     getHostName(hostname, 1024);
     hostHashs[myRank] = getHostHash(hostname);
@@ -151,7 +181,7 @@ int main(int argc, char* argv[])
         if (p == myRank) break;
         if (hostHashs[p] == hostHashs[myRank]) localRank++;
     }
-
+*/
     // Usage: main_gpu [ori [parts [streams]]]
     // ori: 0|1 indicates if the original allreduce must be done (default 1)
     // parts: >=0 indicates the number of allreduce divisions (default 0)
@@ -161,6 +191,7 @@ int main(int argc, char* argv[])
     ori = (argc > 1) ? atoi(argv[1]) : 1;
     parts = (argc > 2) ? atoi(argv[2]) : 0;
     streams = (argc > 3) ? atoi(argv[3]) : 1;
+    if (parts > 0 && streams > parts) streams = parts;
     int chunk = (argc > 4) ? atoi(argv[4]): 0;
     int chunksize = (argc > 5) ? atoi(argv[5]): 262144; //262144 ints = 1MB
     size_t range_s = (argc > 6) ? atol(argv[6]): 0;
@@ -179,13 +210,16 @@ int main(int argc, char* argv[])
     MPI_Get_processor_name(processor_name, &name_len);
 
     // Print off a hello world message so we ensure the correct MPI mapping (one per node)
-    printf("#Hello world from processor %s, rank %d out of %d processors\n",
-           processor_name, myRank, nRanks);
+    printf("#ANTES Hello world from processor %s, rank %d out of %d processors. GPU %d in communicator %d\n",
+           processor_name, myRank, nRanks, localRank , id);
 
     //get NCCL unique ID at rank 0 and broadcast it to all others
     if (myRank == 0) ncclGetUniqueId(&id);
     MPICHECK(MPI_Bcast((void *)&id, sizeof(id), MPI_BYTE, 0, MPI_COMM_WORLD));
 
+    // Print off a hello world message so we ensure the correct MPI mapping (one per node)
+    printf("#Hello world from processor %s, rank %d out of %d processors. GPU %d in communicator %d\n",
+           processor_name, myRank, nRanks, localRank , id);
 
     //picking a GPU based on localRank, allocate device buffers
     CUDACHECK(cudaSetDevice(localRank));
@@ -235,6 +269,12 @@ int main(int argc, char* argv[])
             double ori_time = ori_nccl_allreduce(sendbuff, recvbuff, hsendbuff, hrecvbuff, s, sol, comm, st, myRank,
                                                  nRanks, reps);
             if (myRank == 0) printf("%f\t", ori_time);
+        }
+        if(parts){
+           double part_time = part_nccl_allreduce(sendbuff, recvbuff, hsendbuff, hrecvbuff,
+                          s, sol, comm, st, streams, myRank, nRanks, reps, parts);
+            if (myRank == 0) printf("%f\t", part_time);
+        
         }
         if (myRank == 0) printf("\n");
     }

@@ -50,7 +50,7 @@ void check(TYPE *out, TYPE * sol, int size, int rank){
         		MPI_Barrier(MPI_COMM_WORLD);\
         		MPI_Reduce(&time,&time2,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);\
                         if(rank == 0) time = time2;\
-        		check(out,sol,s,rank);\
+        		/*check(out,sol,s,rank);*/\
         		time_all+=time;\
 			}\
     			return time_all/reps;
@@ -59,8 +59,8 @@ void check(TYPE *out, TYPE * sol, int size, int rank){
 #define END_TEST2	time = MPI_Wtime() - time;\
         		MPI_Barrier(MPI_COMM_WORLD);\
         		MPI_Reduce(&time,&time,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);\
-                        if(rank < bcast_size){\
-        		check(out,sol,s,rank);}\
+                        /*if(rank < bcast_size){*/\
+        		/*check(out,sol,s,rank);}*/\
         		time_all+=time;\
 			}\
     			return time_all/reps;
@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
     int i, r; 
     size_t s, ss=1;
     int rank, wsize;
-    int reps = 1;
+    int reps = 100;
     int reps2;
     
 
