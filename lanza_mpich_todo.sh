@@ -45,9 +45,9 @@ do
         export MPIR_CVAR_ALLREDUCE_INTRA_ALGORITHM=auto
 	mpirun -np $i -iface ${face} -f myhostfile.$$  ./${exe} 0 0 1 > ${dir}/allreduce_auto_${i}.dat
         export MPIR_CVAR_ALLREDUCE_INTRA_ALGORITHM=recursive_doubling
-	mpirun -np $i -iface ${face} -f myhostfile  ./${exe} 0 0 1 > ${dir}/allreduce_1_${i}.dat
+	mpirun -np $i -iface ${face} -f myhostfile.$$  ./${exe} 0 0 1 > ${dir}/allreduce_1_${i}.dat
         export MPIR_CVAR_ALLREDUCE_INTRA_ALGORITHM=reduce_scatter_allgather
-        mpirun -np $i -iface ${face} -f myhostfile  ./${exe} 0 0 1 > ${dir}/allreduce_2_${i}.dat
+        mpirun -np $i -iface ${face} -f myhostfile.$$  ./${exe} 0 0 1 > ${dir}/allreduce_2_${i}.dat
         unset MPIR_CVAR_ALLREDUCE_INTRA_ALGORITHM
         #for p in ${part}
         #do

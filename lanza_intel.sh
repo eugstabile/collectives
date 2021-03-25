@@ -51,10 +51,10 @@ export UCX_TLS=ud,sm,self
 for i in ${procs}
 do
         #FI_PROVIDER=sockets mpirun -np $i -ppn 1  -genv FI_SOCKETS_IFACE=enp1s0f0 -iface ${face} -f myhostfile.$$  ./${exe} 0 0 1 > ${dir}/allreduce_auto_${i}.dat
-        mpirun -np $i -ppn 1  -iface ${face} -f myhostfile.$$  ./${exe} 0 0 1 > ${dir}/allreduce_auto_${i}.dat
+        mpirun -np $i -ppn 1  -iface ${face} -f myhostfile.$$  ./${exe} 1 0 0 > ${dir}/allreduce_auto_${i}.dat
         for a in ${algs}
         do
-            mpirun -np $i -ppn 1  -genv I_MPI_ADJUST_ALLREDUCE $a -iface ${face} -f myhostfile.$$  ./${exe} 0 0 1 > ${dir}/allreduce_${a}_alg_${i}.dat
+            mpirun -np $i -ppn 1  -genv I_MPI_ADJUST_ALLREDUCE $a -iface ${face} -f myhostfile.$$  ./${exe} 1 0 0 > ${dir}/allreduce_${a}_alg_${i}.dat
         done
         for p in ${part}
         do

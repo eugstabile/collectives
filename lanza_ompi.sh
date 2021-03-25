@@ -49,13 +49,13 @@ for i in ${procs}
 do
     mpirun -n $i --map-by node --oversubscribe  \
         ${net} \
-       --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 0 0 1 > ${dir}/allreduce_auto_${i}.dat
+       --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 1 0 0 > ${dir}/allreduce_auto_${i}.dat
     for a in ${algs}
     do 
         mpirun -n $i --map-by node --oversubscribe  \
         ${net} \
         --mca coll_tuned_use_dynamic_rules 1 --mca coll_tuned_allreduce_algorithm $a \
-        --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 0 0 1 > ${dir}/allreduce_${a}_alg_${i}.dat
+        --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 ./${exe} 1 0 0 > ${dir}/allreduce_${a}_alg_${i}.dat
     done
     #for p in ${part}
     #do

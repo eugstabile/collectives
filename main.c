@@ -225,7 +225,6 @@ double allreduce_dynamic_opt(int * in, int * out, int * sol, int s, int wsize,in
 
 int main(int argc, char *argv[])
 {
-     size_t count = 134217728*2; // 1 GB
 
     TYPE *in, *out, *sol;
     int i, r; 
@@ -268,17 +267,23 @@ int main(int argc, char *argv[])
     //          If > 0, the elements of a message (default=0)
     // Example: ./exe 0 1 3 1 128 [0] will execute the test without the blocking call, with segmented iallreduce
     //           divided into 3 messages, with chunksizes of 128 elements. The range will be from 1 to count elements
+    size_t max_count = 1024*1024*1024; // 1 GB
     int ori = (argc > 1) ? atoi(argv[1]):1;
     int opt= (argc > 2) ?atoi(argv[2]):0;
     int part = (argc > 3) ? atoi(argv[3]):4;
     int chunk = (argc > 4) ? atoi(argv[4]): 0;
-    int chunksize = (argc > 5) ? atoi(argv[5]): 262144; //262144 ints = 1MB
+    int chunksize = (argc > 5) ? atoi(argv[5]): 1024*1024; //1MB
+    if (chunk) {chunksize = chunksize/sizeof(TYPE);}
     size_t range = (argc > 6) ? atol(argv[6]): 0;
-
+    size_t min_range = (argc > 7) ? atol(argv[7]): 4;
+    size_t max_range = (argc > 8) ? atol(argv[8]): max_count;
+    size_t count;
     if(range){
-        ss = range;
-        count = range;
+        ss = min_range/sizeof(TYPE);
+        count = max_range/sizeof(TYPE);
     }
+    else{count = max_count/sizeof(TYPE);}
+    
     in = (TYPE *)malloc( count * sizeof(TYPE) );
     out = (TYPE *)malloc( count * sizeof(TYPE) );
     sol = (TYPE *)malloc( count * sizeof(TYPE) );
