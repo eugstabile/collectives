@@ -71,7 +71,7 @@ static void getHostName(char* hostname, int maxlen) {
 #define END_TEST	time = MPI_Wtime() - time;\
         		MPI_Barrier(MPI_COMM_WORLD);\
         		MPI_Reduce(&time,&time2,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);\
-                        if(myRank == 0) time = time2;\
+                        if(myRank == 0){ time = time2; printf("%f\n",time); }\
         		/*check(sendbuff,hsendbuff,hrecvbuff,recvbuff,size,sol,comm, myRank);*/\
         		time_all+=time;\
 			}\
