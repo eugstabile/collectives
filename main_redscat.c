@@ -65,16 +65,24 @@ void check(TYPE *out, TYPE * sol, int size, int rank){
 			}\
     			return time_all/reps;
 
-double original_allreduce(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm){
+double original_redscat(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm){
+    int * counts = malloc(sizeof(int)*wsize);
+    int cc;
+    for ( cc = 0; cc< wsize; cc++) counts[cc] = s/wsize;
     START_TEST;
-    MPI_Allreduce(in, out, s, MPI_TYPE, MPI_SUM, comm );
+    MPI_Reduce_scatter(in, out, counts, MPI_TYPE, MPI_SUM, comm );
     END_TEST;
 }
 
 //DYNAMIC for testing
-double half_iallreduce(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm, int halfs){
+double half_iredscat(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm, int halfs){
     if(s < halfs){halfs=1;}
     size_t half_size = s/halfs;
+    int * counts = malloc(sizeof(int)*wsize);
+    int cc;
+    reps=20;
+    for ( cc = 0; cc< wsize; cc++) counts[cc] = s/wsize/halfs;
+
     MPI_Request * request = malloc(halfs*sizeof(MPI_Request));
     MPI_Status * status = malloc(halfs*sizeof(MPI_Status));
     int h;
@@ -82,14 +90,15 @@ double half_iallreduce(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,in
     size_t sent = 0;
     for(h=0;h<halfs-1;h++)
     {
-        MPI_Iallreduce( &in[h*half_size], &out[h*half_size], half_size, MPI_TYPE, MPI_SUM, comm, &request[h] );
+        MPI_Ireduce_scatter( &in[h*half_size], &out[h*half_size], counts, MPI_TYPE, MPI_SUM, comm, &request[h] );
         sent+=half_size;
     }
     h=halfs-1;
-    MPI_Iallreduce( &in[h*half_size], &out[h*half_size], s-sent, MPI_TYPE, MPI_SUM, comm, &request[h] );
+    MPI_Ireduce_scatter( &in[h*half_size], &out[h*half_size], counts, MPI_TYPE, MPI_SUM, comm, &request[h] );
     MPI_Waitall(halfs,request,status);
     END_TEST;
 }
+//NOT CHANGED NEITHER CHECK
 double chunk_iallreduce(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm, int chunk){
     int chunks = ( s <= chunk) ? 1 :  s/chunk;
     if (chunks > 1 &&  s % chunk != 0) chunks++;
@@ -112,7 +121,7 @@ double chunk_iallreduce(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,i
 
 double allreduce_dynamic_opt(int * in, int * out, int * sol, int s, int wsize,int red_size,int bcast_size,int rank, int reps,MPI_Comm comm){
     if (red_size == bcast_size){
-        return original_allreduce(in, out, sol, s, wsize, rank, reps, comm);
+        return 0; //original_allreduce(in, out, sol, s, wsize, rank, reps, comm);
     }
     MPI_Comm max_procs_comm;
     MPI_Comm red_comm,bcast_comm_p;
@@ -267,7 +276,7 @@ int main(int argc, char *argv[])
     //          If > 0, the elements of a message (default=0)
     // Example: ./exe 0 1 3 1 128 [0] will execute the test without the blocking call, with segmented iallreduce
     //           divided into 3 messages, with chunksizes of 128 elements. The range will be from 1 to count elements
-    size_t max_count = 1024*1024*4;//*1024; // 1 GB
+    size_t max_count = 1024*1024*1024; // 1 GB
     int ori = (argc > 1) ? atoi(argv[1]):1;
     int opt= (argc > 2) ?atoi(argv[2]):0;
     int part = (argc > 3) ? atoi(argv[3]):4;
@@ -290,8 +299,8 @@ int main(int argc, char *argv[])
     if(rank == 0){
         // Print a summary of the test
         printf("#Test with %d proceses\n",wsize);
-        printf("#Iallreduce division: %sabled with %d parts\n",(opt == 0)? "dis" : "en", part);
-        printf("#Chunk Iallreduce: %sabled with chunksize of %d (elems) %d~MB \n",
+        printf("#Ired_scatt division: %sabled with %d parts\n",(opt == 0)? "dis" : "en", part);
+        printf("#Chunk Ired_scat: %sabled with chunksize of %d (elems) %d~MB \n",
                (chunk == 0)? "dis" : "en", chunksize, chunksize*sizeof(TYPE)/1024/1024);
     }
     
@@ -299,11 +308,11 @@ int main(int argc, char *argv[])
         // Prepare the output header
         printf("#SIZE(bytes)\t");
         if(ori == 1){
-            printf("allreduce(%d)\t",wsize);
+            printf("Reduce_Scatter(%d)\t",wsize);
         }
     
         if(opt == 1){
-            printf("%d_half_iallreduce(%d)\t",part,wsize);
+            printf("%d_half_ired_scat(%d)\t",part,wsize);
         }
         if(chunk == 1){
             printf("%d_chunk_iallreduce(%d)\t",chunksize,wsize);
@@ -318,13 +327,13 @@ int main(int argc, char *argv[])
  
         wsize = total_wsize;
         if(ori == 1){   
-            double time_allreduce = original_allreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD);
+            double time_allreduce = original_redscat(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD);
             if(rank == 0){
               printf("%f\t",time_allreduce);
             }
         }
         if( opt == 1){ 
-	    double time_4hiallreduce = half_iallreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,part);
+	    double time_4hiallreduce = half_iredscat(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,part);
             if(rank == 0){
                 printf("%f\t",time_4hiallreduce);
             } 

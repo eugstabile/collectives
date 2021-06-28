@@ -8,7 +8,7 @@ EXE2:=main_gpu
 all: coll
 
 coll:
-	$(COMP) main_bcast.c -o $(EXE) $(FLAGS)
+	$(COMP) main_redscat.c -o $(EXE) $(FLAGS)
 
 gpu:
 	$(COMP) main_gpu.c -o $(EXE2) $(FLAGS2)
