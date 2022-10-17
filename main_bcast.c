@@ -51,7 +51,8 @@ void check(TYPE *out, TYPE * sol, int size, int rank){
 #define END_TEST	time = MPI_Wtime() - time;\
         		MPI_Barrier(MPI_COMM_WORLD);\
         		MPI_Reduce(&time,&time2,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);\
-                //sleep()
+                sleep(t);\
+                t/10;
                         if(rank == 0) time = time2;\
         		/*check(out,sol,s,rank);*/\
         		time_all+=time;\
@@ -68,7 +69,9 @@ void check(TYPE *out, TYPE * sol, int size, int rank){
 			}\
     			return time_all/reps;
 
+
 double original_bcast(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm){
+    double t = 5;
     START_TEST;
     MPI_Bcast(in, s, MPI_TYPE, ROOT, comm );
     END_TEST;
@@ -120,7 +123,7 @@ int main(int argc, char *argv[])
     int i, r; 
     size_t s, ss=1;
     int rank, wsize;
-    int reps = 1;
+    int reps = 100;
     int reps2;
     
 
@@ -157,7 +160,9 @@ int main(int argc, char *argv[])
     //          If > 0, the elements of a message (default=0)
     // Example: ./exe 0 1 3 1 128 [0] will execute the test without the blocking call, with segmented iallreduce
     //           divided into 3 messages, with chunksizes of 128 elements. The range will be from 1 to count elements
-    size_t max_count = 16; // 1 GB
+    
+    int tammax [3] = {4096, 9216, 33554432};
+    size_t max_count = 33554432; // 1 GB
     int ori = (argc > 1) ? atoi(argv[1]):1;
     int opt= (argc > 2) ?atoi(argv[2]):0;
     int part = (argc > 3) ? atoi(argv[3]):4;
@@ -201,26 +206,25 @@ int main(int argc, char *argv[])
     printf("\n");
     }
     
-    for (s=ss; s<=count; s*=2){
- 
+    for (s=0; s<=3; s++){
         if(rank == 0)
             printf("%lu,",s*sizeof(TYPE));
- 
+
         wsize = total_wsize;
         if(ori == 1){   
-            double time_bcast = original_bcast(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD);
+            double time_bcast = original_bcast(in,out,sol,tammax[s],wsize,rank,reps,MPI_COMM_WORLD);
             if(rank == 0){
-              printf("%lf,%lf\t",time_bcast, ((((double) s*sizeof(TYPE))/1000000)/time_bcast));
+            printf("%lf,%lf\t",time_bcast, ((((double) tammax[s]*sizeof(TYPE))/1000000)/time_bcast));
             }
         }
         if( opt == 1){ 
-	    double time_4hiallreduce = half_ibcast(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,part);
+        double time_4hiallreduce = half_ibcast(in,out,sol,tammax[s],wsize,rank,reps,MPI_COMM_WORLD,part);
             if(rank == 0){
-                 printf("%lf,%lf\t", time_4hiallreduce, ((((double) s*sizeof(TYPE))/1000000)/time_4hiallreduce));
+                printf("%lf,%lf\t", time_4hiallreduce, ((((double) tammax[s]*sizeof(TYPE))/1000000)/time_4hiallreduce));
             } 
         }
         if ( chunk == 1){
-	    double t_chunk = chunk_ibcast(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,chunksize);       
+        double t_chunk = chunk_ibcast(in,out,sol,tammax[s],wsize,rank,reps,MPI_COMM_WORLD,chunksize);       
             if(rank == 0){
                 printf("%f\t",t_chunk);
             } 
