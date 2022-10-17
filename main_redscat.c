@@ -80,7 +80,7 @@ double half_iredscat(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,int 
     size_t half_size = s/halfs;
     int * counts = malloc(sizeof(int)*wsize);
     int cc;
-    reps=20;
+    reps=50;
     for ( cc = 0; cc< wsize; cc++) counts[cc] = s/wsize/halfs;
 
     MPI_Request * request = malloc(halfs*sizeof(MPI_Request));
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
     int i, r; 
     size_t s, ss=1;
     int rank, wsize;
-    int reps = 100;
+    int reps = 50;
     int reps2;
     
 
@@ -300,7 +300,7 @@ int main(int argc, char *argv[])
         // Print a summary of the test
         printf("#Test with %d proceses\n",wsize);
         printf("#Ired_scatt division: %sabled with %d parts\n",(opt == 0)? "dis" : "en", part);
-        printf("#Chunk Ired_scat: %sabled with chunksize of %d (elems) %d~MB \n",
+        printf("#Chunk Ired_scat: %sabled with chunksize of %d (elems) %ld~MB \n",
                (chunk == 0)? "dis" : "en", chunksize, chunksize*sizeof(TYPE)/1024/1024);
     }
     
@@ -323,25 +323,25 @@ int main(int argc, char *argv[])
     for (s=ss; s<=count; s*=2){
  
         if(rank == 0)
-            printf("%lu\t\t",s*sizeof(TYPE));
+            printf("%lu,",s*sizeof(TYPE));
  
         wsize = total_wsize;
         if(ori == 1){   
             double time_allreduce = original_redscat(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD);
             if(rank == 0){
-              printf("%f\t",time_allreduce);
+              printf("%lf,%lf\t", time_allreduce, ((((double) s*sizeof(TYPE))/1000000)/time_allreduce));
             }
         }
         if( opt == 1){ 
 	    double time_4hiallreduce = half_iredscat(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,part);
             if(rank == 0){
-                printf("%f\t",time_4hiallreduce);
+                printf("%lf,%lf\t", time_4hiallreduce, ((((double) s*sizeof(TYPE))/1000000)/time_4hiallreduce));
             } 
         }
         if ( chunk == 1){
 	    double t_chunk = chunk_iallreduce(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,chunksize);       
             if(rank == 0){
-                printf("%f\t",t_chunk);
+                printf("%lf,%lf\t", t_chunk, ((((double) s*sizeof(TYPE))/1000000)/t_chunk));
             } 
 
         }

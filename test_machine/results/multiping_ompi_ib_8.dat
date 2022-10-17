@@ -1,0 +1,66 @@
+ Data for JOB [55309,1] offset 0 Total slots allocated 512
+
+ ========================   JOB MAP   ========================
+
+ Data for node: cmts2	Num slots: 64	Max slots: 0	Num procs: 1
+ 	Process OMPI jobid: [55309,1] App: 0 Process rank: 0 Bound: socket 0[core 0[hwt 0-1]], socket 0[core 1[hwt 0-1]], socket 0[core 2[hwt 0-1]], socket 0[core 3[hwt 0-1]], socket 0[core 4[hwt 0-1]], socket 0[core 5[hwt 0-1]], socket 0[core 6[hwt 0-1]], socket 0[core 7[hwt 0-1]], socket 0[core 8[hwt 0-1]], socket 0[core 9[hwt 0-1]], socket 0[core 10[hwt 0-1]], socket 0[core 11[hwt 0-1]], socket 0[core 12[hwt 0-1]], socket 0[core 13[hwt 0-1]], socket 0[core 14[hwt 0-1]], socket 0[core 15[hwt 0-1]]:[BB/BB/BB/BB/BB/BB/BB/BB/BB/BB/BB/BB/BB/BB/BB/BB][../../../../../../../../../../../../../../../..]
+
+ Data for node: cmts3	Num slots: 64	Max slots: 0	Num procs: 1
+ 	Process OMPI jobid: [55309,1] App: 0 Process rank: 1 Bound: N/A
+
+ Data for node: cmts4	Num slots: 64	Max slots: 0	Num procs: 1
+ 	Process OMPI jobid: [55309,1] App: 0 Process rank: 2 Bound: N/A
+
+ Data for node: cmts5	Num slots: 64	Max slots: 0	Num procs: 1
+ 	Process OMPI jobid: [55309,1] App: 0 Process rank: 3 Bound: N/A
+
+ Data for node: cmts6	Num slots: 64	Max slots: 0	Num procs: 1
+ 	Process OMPI jobid: [55309,1] App: 0 Process rank: 4 Bound: N/A
+
+ Data for node: cmts7	Num slots: 64	Max slots: 0	Num procs: 1
+ 	Process OMPI jobid: [55309,1] App: 0 Process rank: 5 Bound: N/A
+
+ Data for node: cmts8	Num slots: 64	Max slots: 0	Num procs: 1
+ 	Process OMPI jobid: [55309,1] App: 0 Process rank: 6 Bound: N/A
+
+ Data for node: cmts9	Num slots: 64	Max slots: 0	Num procs: 1
+ 	Process OMPI jobid: [55309,1] App: 0 Process rank: 7 Bound: N/A
+
+ =============================================================
+#Hello world from processor cmts2, rank 0 out of 8 processors
+#Hello world from processor cmts5, rank 3 out of 8 processors
+#Hello world from processor cmts6, rank 4 out of 8 processors
+#Hello world from processor cmts7, rank 5 out of 8 processors
+#Hello world from processor cmts3, rank 1 out of 8 processors
+#Hello world from processor cmts8, rank 6 out of 8 processors
+#Hello world from processor cmts4, rank 2 out of 8 processors
+#Hello world from processor cmts9, rank 7 out of 8 processors
+0 4 0.000003 1476199.42 0.0000006774152500
+0 8 0.000002 5097331.96 0.0000001961810625
+0 16 0.000002 10157288.79 0.0000000984514688
+0 32 0.000002 19101409.98 0.0000000523521563
+0 64 0.000002 37493478.92 0.0000000266713047
+0 128 0.000002 77655106.98 0.0000000128774531
+0 256 0.000002 123625541.13 0.0000000080889434
+0 512 0.000002 230163098.88 0.0000000043447451
+0 1024 0.000002 429843839.50 0.0000000023264263
+0 2048 0.000003 615611677.68 0.0000000016244006
+0 4096 0.000004 1033397849.22 0.0000000009676815
+0 8192 0.000004 1919270002.66 0.0000000005210314
+0 16384 0.000005 3038594546.16 0.0000000003290995
+0 32768 0.000009 3664035414.83 0.0000000002729231
+0 65536 0.000012 5669015348.54 0.0000000001763975
+0 131072 0.000017 7761322975.39 0.0000000001288440
+0 262144 0.000028 9520162133.00 0.0000000001050402
+0 524288 0.000049 10725431017.80 0.0000000000932363
+0 1048576 0.000092 11455608857.45 0.0000000000872935
+0 2097152 0.000177 11845277133.68 0.0000000000844218
+0 4194304 0.000347 12076655457.26 0.0000000000828044
+0 8388608 0.000688 12195596537.54 0.0000000000819968
+0 16777216 0.001370 12245117398.57 0.0000000000816652
+0 33554432 0.002733 12275904690.62 0.0000000000814604
+0 67108864 0.005460 12291121804.65 0.0000000000813595
+0 134217728 0.010913 12298815180.14 0.0000000000813086
+0 268435456 0.021813 12306365770.36 0.0000000000812588
+0 536870912 0.043626 12306329287.45 0.0000000000812590
+0 1073741824 0.087237 12308364955.15 0.0000000000812456

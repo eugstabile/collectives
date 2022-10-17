@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Project/Account (use your own)
-#SBATCH -A adcastel
+#SBATCH -A stabile
 #
 # Number of MPI tasks
 ##SBATCH -n 2
@@ -13,32 +13,29 @@
 ##SBATCH --time=12:00:00
 #
 # Name
-#SBATCH -J "allreduce"
+#SBATCH -J "multiping"
 #
 # Partition
 ##SBATCH --partition=mpi
 #
 ##SBATCH --output=bandwidth_%a.out
-##SBATCH --nodelist=nodo[06-07]
+#SBATCH --nodelist=cmts4,cmts5
 #SBATCH --distribution=cyclic
-
+ 
 echo $SLURM_JOB_NODELIST
 
-export NODELIST=nodelist.$$
+export NODELIST=outputfiles/nodelist.$$
 
 srun -l bash -c 'hostname' | sort | awk '{print $2}' > $NODELIST
 
-cat $NODELIST > myhostfile.$$ 
+cat $NODELIST > outputfiles/myhostfile.$$ 
 echo "-----------------------------------------------"
-p=$1
-#export I_MPI_FABRICS=shm:ofi
-#export FI_PROVIDER=mlx
-#export UCX_TLS=all #ud,sm,self
-   #--mca pml ob1  --mca btl ^openib --mca btl_tcp_if_include enp1s0f0 \
-mpirun -n $p --map-by node --display-map \
-   -mca btl openib --mca btl_openib_allow_ib true \
-   --oversubscribe   --hostfile myhostfile.$$ --mca  mpi_warn_on_fork 0 \
-  ./bw_multiping > multiping_ompi_ib_${p}.dat
-#mpirun -np 2 -f myhostfile ./lat_bw_mpi
+p=2
+#nod="4 5 6 7 8"
 
-# End of submit file
+
+$(which mpirun) -np $p --map-by node --display-map \
+-mca btl '^openib' --mca pml ucx \
+--oversubscribe --hostfile outputfiles/myhostfile.$$ --mca mpi_warn_on_fork 0 \
+./bw_multiping > resultadoping.dat
+

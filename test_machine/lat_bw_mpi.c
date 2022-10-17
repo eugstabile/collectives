@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
   // Get the number of processes
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  int data = 1024*1024*1024;
+  int data = 1024*1024*256;
   char * buff = malloc(data);
   char * buff2 = malloc(data);
   int reps = 1000;
@@ -38,9 +38,9 @@ int main(int argc, char** argv) {
   printf("Hello world from processor %s, rank %d out of %d processors\n",
          processor_name, world_rank, world_size);
 
-  printf("Test starting");
+  printf("Test starting\n");
   //from 0 to 256 bytes
-  for(size_t i = 0; i< 256; i+=8){
+  for(size_t i = 4; i < 256; i+=2){
         double start = MPI_Wtime();
 	for(int r = 0; r< reps; r++){
 		if(world_rank == 0){
@@ -56,13 +56,13 @@ int main(int argc, char** argv) {
 	double end = MPI_Wtime();
 	double time = (end-start)/(reps*2.0);
 	if(world_rank == 0){
-	    printf("%d %f %f\n",i,time, i/time);
+	    printf("%ld %.12f %f \n",i, time, i/time);
         }
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  for(size_t i = 256; i< 2048; i+=256){
+  for(size_t i = 256; i< 2048; i+=2){
         double start = MPI_Wtime();
 	for(int r = 0; r< reps; r++){
 		if(world_rank == 0){
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
 	double end = MPI_Wtime();
 	double time = (end-start)/reps/2.0;
 	if(world_rank == 0){
-	    printf("%d %f %f\n",i,time, i/time);
+	    printf("%ld %f %f\n",i,time, i/time);
         }
   }
 
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
 	double end = MPI_Wtime();
 	double time = (end-start)/reps/2.0;
 	if(world_rank == 0){
-	    printf("%d %f %f\n",i,time, i/time);
+	    printf("%ld %f %f\n",i,time, i/time);
         }
   }
 

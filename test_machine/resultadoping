@@ -1,0 +1,51 @@
+#Hello world from processor cmts1.cmts, rank 6 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 7 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 9 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 10 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 11 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 12 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 13 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 14 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 15 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 16 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 17 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 18 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 19 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 20 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 21 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 22 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 23 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 24 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 25 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 26 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 27 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 28 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 29 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 30 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 31 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 0 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 1 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 2 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 3 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 4 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 5 out of 32 processors
+#Hello world from processor cmts1.cmts, rank 8 out of 32 processors
+0 4 0.000002 2041240.20 0.0000004898982500
+0 8 0.000001 5692542.24 0.0000001756684375
+0 16 0.000001 11522085.50 0.0000000867898437
+0 32 0.000001 22596667.84 0.0000000442543125
+0 64 0.000001 47448969.19 0.0000000210752734
+0 128 0.000002 77617835.85 0.0000000128836367
+0 256 0.000002 158278229.63 0.0000000063179883
+0 512 0.000002 237630011.93 0.0000000042082227
+0 1024 0.000002 413772899.69 0.0000000024167847
+0 2048 0.000003 684018058.34 0.0000000014619497
+0 4096 0.000005 893361025.49 0.0000000011193683
+0 8192 0.000008 1022650867.84 0.0000000009778508
+0 16384 0.000005 3198670864.79 0.0000000003126299
+0 32768 0.000006 5388520057.96 0.0000000001855797
+0 65536 0.000010 6812036045.29 0.0000000001467990
+0 131072 0.000025 5214818539.95 0.0000000001917612
+0 262144 0.000068 3868315969.01 0.0000000002585104
+0 524288 0.000143 3664519901.75 0.0000000002728870
+0 1048576 0.000320 3280061565.09 0.0000000003048723

@@ -20,10 +20,11 @@ int main(int argc, char** argv) {
   // Get the number of processes
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  int data = 64*1024*1024;
-  char * buff = malloc(data);
-  char * buff2 = malloc(data);
+  int max_data = 1024*1024*1024; //1 GB
+  char * buff = malloc(max_data);
+  char * buff2 = malloc(max_data);
   int reps = 1000;
+  double time = 0.0;
   //#if(world_size != 2) { printf("We need 2 process!\n"); return 0;}
   // Get the rank of the process
   int world_rank;
@@ -51,28 +52,27 @@ int main(int argc, char** argv) {
 //        if (world_rank < 2){ sleep(2);}
 //        if (world_rank < 4){ sleep(2);}
 //        if (world_rank < 6){ sleep(2);}
+for(size_t i = 4; i<= max_data; i*=2) {         
         double start = MPI_Wtime();
-        int r;
-	for(r = 0; r< reps; r++){
-                double instart = MPI_Wtime();
+	for(int r = 0; r < reps; r++){
 		if(world_rank %2 == 0){
-			MPI_Isend(buff,data,MPI_CHAR,dest,0,MPI_COMM_WORLD, &rt);
-			MPI_Recv(buff2,data,MPI_CHAR,dest,1,MPI_COMM_WORLD,&st);
+			MPI_Isend(buff,i,MPI_CHAR,dest,0,MPI_COMM_WORLD, &rt);
+			MPI_Recv(buff2,i,MPI_CHAR,dest,1,MPI_COMM_WORLD,&st);
 			
                 }
 		else{
-			MPI_Recv(buff2,data,MPI_CHAR,dest,0,MPI_COMM_WORLD, &st);
-			MPI_Isend(buff,data,MPI_CHAR,dest,1,MPI_COMM_WORLD, &rt);
+			MPI_Recv(buff2,i,MPI_CHAR,dest,0,MPI_COMM_WORLD, &st);
+			MPI_Isend(buff,i,MPI_CHAR,dest,1,MPI_COMM_WORLD, &rt);
 		}
                 MPI_Wait(&rt, &st);
-	        double inend = MPI_Wtime();
-	        double time = (inend-instart)/2.0;
-                if (world_rank % 2 == 0){
-	            printf("%d %f %d %f %f\n",world_rank,MPI_Wtime(), data,time, data/time);
-
-                }
         }
-	double end = MPI_Wtime();
+        double end = MPI_Wtime();
+        time = (end - start)/reps/2.0;
+        
+        if (world_rank == 0){
+                printf("%d %ld %f %.2f %.16f\n",world_rank, i, time, i/time, time/i);
+        }
+}
 
   MPI_Barrier(MPI_COMM_WORLD);
 

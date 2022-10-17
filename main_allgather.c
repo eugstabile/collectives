@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-//#define TYPE int
-//#define MPI_TYPE MPI_INT
-#define TYPE float
-#define MPI_TYPE MPI_FLOAT
+#define TYPE int
+#define MPI_TYPE MPI_INT
+//#define TYPE float
+//#define MPI_TYPE MPI_FLOAT
 #define ROOT 0
 void init(TYPE * in, TYPE * out, TYPE * sol, int size, int wsize){
 
@@ -61,7 +61,7 @@ void check(TYPE *out, TYPE * sol, int size, int rank){
 #define END_TEST2	time = MPI_Wtime() - time;\
         		MPI_Barrier(MPI_COMM_WORLD);\
         		MPI_Reduce(&time,&time,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);\
-                        /*if(rank < bcast_size){*/\
+                /*if(rank < bcast_size){*/\
         		/*check(out,sol,s,rank);}*/\
         		time_all+=time;\
 			}\
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
     int i, r; 
     size_t s, ss=1;
     int rank, wsize;
-    int reps = 100;
+    int reps = 5;
     int reps2;
     
 
@@ -160,15 +160,15 @@ int main(int argc, char *argv[])
     //          If > 0, the elements of a message (default=0)
     // Example: ./exe 0 1 3 1 128 [0] will execute the test without the blocking call, with segmented iallreduce
     //           divided into 3 messages, with chunksizes of 128 elements. The range will be from 1 to count elements
-    size_t max_count = 1024*1024*256; // 256 MB per proc for send
+    size_t max_count = 1024*1024*128; // 256 MB per proc for send
     int ori = (argc > 1) ? atoi(argv[1]):1;
     int opt= (argc > 2) ?atoi(argv[2]):0;
     int part = (argc > 3) ? atoi(argv[3]):4;
     int chunk = (argc > 4) ? atoi(argv[4]): 0;
     int chunksize = (argc > 5) ? atoi(argv[5]): 1024*1024; //1MB
     if (chunk) {chunksize = chunksize/sizeof(TYPE);}
-    size_t range = (argc > 6) ? atol(argv[6]): 0;
-    size_t min_range = (argc > 7) ? atol(argv[7]): 4;
+    size_t range = (argc > 6) ? atol(argv[6]): 1;
+    size_t min_range = (argc > 7) ? atol(argv[7]): 1024*1024*1;
     size_t max_range = (argc > 8) ? atol(argv[8]): max_count;
     size_t count;
     if(range){
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
         // Print a summary of the test
         printf("#Test with %d proceses\n",wsize);
         printf("#IAllgather division: %sabled with %d parts\n",(opt == 0)? "dis" : "en", part);
-        printf("#Chunk Iallgather: %sabled with chunksize of %d (elems) %d~MB \n",
+        printf("#Chunk Iallgather: %sabled with chunksize of %d (elems) %ld~MB \n",
                (chunk == 0)? "dis" : "en", chunksize, chunksize*sizeof(TYPE)/1024/1024);
     }
     
@@ -207,25 +207,25 @@ int main(int argc, char *argv[])
     for (s=ss; s<=count; s*=2){
  
         if(rank == 0)
-            printf("%lu\t\t",s*sizeof(TYPE));
+            printf("%lu,",s*sizeof(TYPE));
  
         wsize = total_wsize;
         if(ori == 1){   
             double time_bcast = original_allgather(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD);
             if(rank == 0){
-              printf("%f\t",time_bcast);
+              printf("%lf,%lf\t", time_bcast, ((((double) s*sizeof(TYPE))/1000000)/time_bcast));
             }
         }
         if( opt == 1){ 
 	    double time_4hiallreduce = half_iallgather(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,part);
             if(rank == 0){
-                printf("%f\t",time_4hiallreduce);
+                printf("%lf,%lf\t", time_4hiallreduce, ((((double) s*sizeof(TYPE))/1000000)/time_4hiallreduce));
             } 
         }
         if ( chunk == 1){
 	    double t_chunk = chunk_iallgather(in,out,sol,s,wsize,rank,reps,MPI_COMM_WORLD,chunksize);       
             if(rank == 0){
-                printf("%f\t",t_chunk);
+                printf("%lf,%lf\t", t_chunk, ((((double) s*sizeof(TYPE))/1000000)/t_chunk));
             } 
 
         }
@@ -237,6 +237,6 @@ int main(int argc, char *argv[])
     free( in );
     free( out );
     free( sol );
-    MPI_Finalize();
+    MPI_Finalize();   
     return 0;
 }
