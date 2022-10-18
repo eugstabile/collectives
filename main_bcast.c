@@ -41,8 +41,9 @@ void check(TYPE *out, TYPE * sol, int size, int rank){
 
 }
 
-#define START_TEST      double time,time2;\
+#define START_TEST      double time,time2,t;\
 			double time_all = 0.0;\
+            t=5;\
 			int r;\
 			for (r = 0; r < reps; r++){\
 		        init(in,out,sol,s,wsize);\
@@ -52,8 +53,8 @@ void check(TYPE *out, TYPE * sol, int size, int rank){
         		MPI_Barrier(MPI_COMM_WORLD);\
         		MPI_Reduce(&time,&time2,1,MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);\
                 sleep(t);\
-                t/10;
-                        if(rank == 0) time = time2;\
+                t/10;\
+                    if(rank == 0) time = time2;\
         		/*check(out,sol,s,rank);*/\
         		time_all+=time;\
 			}\
@@ -71,7 +72,6 @@ void check(TYPE *out, TYPE * sol, int size, int rank){
 
 
 double original_bcast(TYPE * in, TYPE * out, TYPE * sol, size_t s, int wsize,int rank, int reps, MPI_Comm  comm){
-    double t = 5;
     START_TEST;
     MPI_Bcast(in, s, MPI_TYPE, ROOT, comm );
     END_TEST;
