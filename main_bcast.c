@@ -162,8 +162,10 @@ int main(int argc, char *argv[])
     // Example: ./exe 0 1 3 1 128 [0] will execute the test without the blocking call, with segmented iallreduce
     //           divided into 3 messages, with chunksizes of 128 elements. The range will be from 1 to count elements
     
-    int tammax[3] = {1024, 2048, 8192};
-    size_t max_count = 32*1024*1024; // 1 GB
+    //int tammax[3] = {1024, 2304, 8388608};
+    //size_t max_count = 32*1024*1024; // 1 GB
+    int tammax[1] = {1024};
+    size_t max_count = 4*1024; // 1 GB
     int ori = (argc > 1) ? atoi(argv[1]):1;
     int opt= (argc > 2) ?atoi(argv[2]):0;
     int part = (argc > 3) ? atoi(argv[3]):4;
@@ -208,7 +210,7 @@ int main(int argc, char *argv[])
     printf("\n");
     }
     
-    for (s=0; s<3; s++){
+    for (s=0; s<1; s++){
         if(rank == 0)
             printf("%lu,",tammax[s]*sizeof(TYPE));
 
